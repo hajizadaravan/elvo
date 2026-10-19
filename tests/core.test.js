@@ -67,3 +67,10 @@ test('bad dimensions, nonnumeric data, unknown labels and duplicate IDs are reje
 test('phrase composition keeps the longest matching rule', () => {
   assert.equal(compose(['salam', 'bas', 'agri', 'derman'], vocab), 'Salam! Başım ağrıyır, dərman lazımdır.');
 });
+
+test('the last sign is still evaluated briefly after the hands leave', async () => {
+  const { handsRecent, HAND_TAIL_MS, MIN_HAND_SHARE } = await import('../js/temporal.js');
+  assert.equal(handsRecent(1000 + HAND_TAIL_MS, 1000), true);
+  assert.equal(handsRecent(1001 + HAND_TAIL_MS, 1000), false);
+  assert.ok(MIN_HAND_SHARE >= 0.5);
+});

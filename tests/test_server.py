@@ -48,6 +48,25 @@ class SpeechTests(unittest.TestCase):
         self.assertIn("Əli &amp; &lt;baş&gt;", r.data.decode())
         self.assertNotIn("test-secret", r.data.decode())
 
+    def test_speech_is_faster_with_short_sentence_pauses(self):
+        self.service().synthesize("Salam. Başım ağrıyır.", "az-AZ-BanuNeural")
+        body = self.requests[0].data.decode()
+        self.assertIn('<prosody rate="+10%">', body)
+        self.assertIn('xmlns:mstts="https://www.w3.org/2001/mstts"', body)
+        self.assertIn('<mstts:silence type="Sentenceboundary-exact" value="150ms"/>', body)
+
+    def test_rejected_pause_tags_fall_back_to_plain_faster_speech(self):
+        def opener(request, timeout):
+            self.requests.append(request)
+            if b"mstts:silence" in request.data:
+                raise HTTPError(request.full_url, 400, "bad ssml", {}, None)
+            return AudioResponse(b"ID3-test-audio")
+        audio, cached = self.service(opener=opener).synthesize("Salam!", "az-AZ-BanuNeural")
+        self.assertEqual(audio, b"ID3-test-audio")
+        self.assertEqual(len(self.requests), 2)
+        self.assertNotIn(b"mstts:silence", self.requests[1].data)
+        self.assertIn(b'rate="+10%"', self.requests[1].data)
+
     def test_cache_persists_and_works_without_credentials(self):
         service = self.service()
         first, _ = service.synthesize("Başım ağrıyır.", "az-AZ-BanuNeural")
