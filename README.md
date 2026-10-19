@@ -57,15 +57,15 @@ A Deaf patient walks up to a clinic reception. The receptionist does not sign, a
 <table>
   <tr>
     <td width="50%" valign="top"><b>Live recognition</b><br>Webcam sign recognition with hand landmark overlays, confidence scores, and a gate that waits for a stable, confident winner.</td>
-    <td width="50%" valign="top"><b>Your vocabulary</b><br>Add signs and phrase rules in the app. Record samples, train, and evaluate without leaving the browser.</td>
+    <td width="50%" valign="top"><b>Your vocabulary</b><br>Add signs, edit their phrases, and add rules in the app. Record samples, train, and evaluate without leaving the browser.</td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><b>Honest evaluation</b><br>Random per-class split or held-out signer evaluation, confusion matrix, and balanced recall. The final model then trains on all samples.</td>
+    <td width="50%" valign="top"><b>Honest evaluation</b><br>Random per-class split or held-out signer evaluation, confusion matrix, and balanced recall. After a held-out signer evaluation, the live model retrains on all samples.</td>
     <td width="50%" valign="top"><b>Two-way conversation</b><br>Azerbaijani speech recognition where the browser supports it, typed replies, and quick replies shown large for the patient.</td>
   </tr>
   <tr>
     <td width="50%" valign="top"><b>Team-friendly data</b><br>Validated dataset export and import that merge recordings across computers by sample ID, plus portable model bundles.</td>
-    <td width="50%" valign="top"><b>Ready for a stage</b><br>Azerbaijani and English interface, projector mode, keyboard shortcuts, cached demo phrases, and optional local copies of the libraries and landmark models.</td>
+    <td width="50%" valign="top"><b>Ready for a stage</b><br>Azerbaijani and English interface, a full-screen **Present** mode, keyboard shortcuts, cached demo phrases, and optional local copies of the libraries and landmark models.</td>
   </tr>
 </table>
 
@@ -83,7 +83,7 @@ A Deaf patient walks up to a clinic reception. The receptionist does not sign, a
 3. **Classifier.** A small temporal convolutional network in TensorFlow.js scores every sign plus a background class.
 4. **Gate.** A sign counts only when it clears the confidence threshold (80% by default), leads the runner-up by a margin, and stays on top long enough. Evaluation continues for 600 ms after the hands drop, so a final sign is not lost.
 5. **Phrase.** The longest matching predefined rule turns signs into a sentence. Otherwise each sign speaks its own phrase.
-6. **Voice.** The local Python server sends the text to Azure, caches the MP3 on disk, and plays it back. The phrase is prepared during the pause before it is spoken.
+6. **Voice.** The browser sends the phrase text to the local Python server, which gets the MP3 from Azure, caches it on disk, and returns it; the browser plays it. The phrase is prepared during the pause before it is spoken.
 
 ```mermaid
 flowchart LR
@@ -93,12 +93,13 @@ flowchart LR
     win --> clf["TensorFlow.js classifier"]
     clf --> gate["Confidence gate"]
     gate --> rules["Phrase rules"]
+    play["Audio playback"]
     store[("IndexedDB: samples and model")]
   end
   rules -- "phrase text" --> srv["Local server on 127.0.0.1"]
   srv -- "uncached text" --> az["Azure az-AZ neural TTS"]
   az -- "MP3" --> srv
-  srv -- "cached audio" --> out["Speaker"]
+  srv -- "MP3, cached on disk" --> play
 ```
 
 <details>
@@ -113,7 +114,7 @@ flowchart LR
 | Optimizer | Adam, learning rate 0.001, categorical cross-entropy |
 | Training | 20, 35 (default), or 60 epochs, batch size 32 |
 | Augmentation | Temporal crops, position and scale variation, shape jitter, random mirroring. Training data only. |
-| Evaluation | Random stratified split or held-out signer, then a final model trained on all samples |
+| Evaluation | Random stratified split (20% per class held out) or held-out signer. After a held-out signer evaluation, a final live model is trained on all samples; in random mode the model trained on the 80% portion is kept. |
 
 Mirroring swaps the hand slots and flips horizontal coordinates. It improves robustness; it is not evidence of accuracy for left-handed signers. Training time depends on the device and dataset.
 
@@ -128,18 +129,18 @@ Mirroring swaps the hand slots and flips horizontal coordinates. It improves rob
   </picture>
 </p>
 
-The default vocabulary covers `salam`, `həkim`, `ağrı`, `baş`, `dərman`, `təcili`, `harada`, and `təşəkkür`, plus a background class for ordinary movement. Rules combine them, and the longest match wins:
+The default vocabulary covers *salam*, *həkim*, *ağrı*, *baş*, *dərman*, *təcili*, *harada*, and *təşəkkür*, plus a background class for ordinary movement. Rules combine them, and the longest match wins:
 
 | Signs | Spoken phrase | Meaning |
 | --- | --- | --- |
-| `baş` + `ağrı` | Başım ağrıyır. | My head hurts. |
-| `baş` + `ağrı` + `dərman` | Başım ağrıyır, dərman lazımdır. | My head hurts, I need medicine. |
-| `təcili` + `həkim` | Təcili həkim lazımdır! | I need a doctor urgently! |
-| `həkim` + `harada` | Həkim haradadır? | Where is the doctor? |
-| `dərman` + `harada` | Dərmanı haradan ala bilərəm? | Where can I get medicine? |
-| `ağrı` + `təcili` | Çox ağrıyır, təcilidir! | It hurts a lot, it is urgent! |
+| *baş* + *ağrı* | Başım ağrıyır. | My head hurts. |
+| *baş* + *ağrı* + *dərman* | Başım ağrıyır, dərman lazımdır. | My head hurts, I need medicine. |
+| *təcili* + *həkim* | Təcili həkim lazımdır! | I need a doctor urgently! |
+| *həkim* + *harada* | Həkim haradadır? | Where is the doctor? |
+| *dərman* + *harada* | Dərmanı haradan ala bilərəm? | Where can I get medicine? |
+| *ağrı* + *təcili* | Çox ağrıyır, təcilidir! | It hurts a lot, it is urgent! |
 
-Signs, phrases, and rules are editable in **Vocabulary & settings**.
+In **Vocabulary & settings** you can add signs, edit sign names and phrases, and add or remove rules.
 
 ## Train your own signs
 
@@ -175,7 +176,7 @@ python3 server.py --configure   # first run: enter the Azure region and key
 
 Open <http://localhost:8000> and allow camera access. Later, start the app with `python3 server.py`.
 
-The server uses only the Python standard library. The key is entered hidden and saved to the ignored `.env` file; it never reaches the browser. Camera access needs `localhost` or HTTPS, so opening `index.html` directly does not work, and a plain static server has no speech endpoints.
+The server uses only the Python standard library. The key is entered hidden and saved to the ignored `.env` file; it never reaches the browser. The server accepts only `localhost`, so open the app at that address, not from a LAN address or by opening `index.html` directly. A plain static server has no speech endpoints.
 
 <details>
 <summary><b>Azure speech setup</b></summary>
@@ -219,7 +220,7 @@ After `sh scripts/vendor.sh`, recording, training, and recognition run without f
 | <kbd>Space</kbd> | Start or stop recording in **Record samples** |
 | <kbd>Enter</kbd> | Speak the pending phrase in **Live translation** |
 | <kbd>Backspace</kbd> | Remove the last pending sign |
-| <kbd>Esc</kbd> | Leave projector mode |
+| <kbd>Esc</kbd> | Leave **Present** mode |
 
 </details>
 

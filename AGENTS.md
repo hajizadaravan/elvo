@@ -146,7 +146,7 @@ The recognizer smooths predictions and filters them by confidence. Phrase compos
 
 Background examples should include non-signing behavior such as resting hands, ordinary gestures, and object handling. Do not turn background predictions into spoken signs.
 
-Validation supports a random per-class split and a held-out signer mode. The final model is subsequently trained on all samples. Keep held-out evaluation results distinct from that final training run.
+Validation supports a random per-class split and a held-out signer mode. In held-out signer mode, a final live model is then trained on all samples; random split mode keeps the model trained on the training portion. Keep held-out evaluation results distinct from that final training run.
 
 Signer names must describe the actual signer. Do not invent mappings or infer identities from timestamps. Incorrect signer labels invalidate claims about unseen-person performance.
 
