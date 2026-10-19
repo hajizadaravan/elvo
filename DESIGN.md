@@ -1,4 +1,4 @@
-# Dilmanc interface design
+# Elvo interface design
 
 This is the design contract for the existing application, not a proposal for a new visual direction. Use `css/app.css` as the implementation source of truth and keep this file aligned with intentional changes.
 
@@ -10,7 +10,7 @@ A restrained working interface: a pale blue-gray frame surrounds a white content
 
 Keep the existing framed-sheet layout. Do not turn it into a marketing page, decorative dashboard, chat product, or collection of floating cards. Avoid gradients, glass effects, decorative illustrations, oversized branding, and attention-seeking animation.
 
-The hand-shaped mark and the Dilmanc wordmark are the identity. Use the existing inline SVG rather than inventing a new logo or adding a slogan.
+The Elvo logo is the identity: a blue hand whose fingers form the "E", followed by "lvo" in charcoal. Use the inline SVG in `index.html` (source files in `assets/`) rather than redrawing it, retyping the letters in a font, or adding a slogan. The logo keeps its own colors, `#235ad4` for the hand and `#2a2e31` for the letters; they are brand colors, not interface tokens. The sidebar shows the logo at 24 px high.
 
 ## Color tokens
 

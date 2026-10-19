@@ -585,7 +585,7 @@ function bindWords() {
   $('#exportBtn').onclick = () => {
     const blob = new Blob([toJSON(S.samples, S.vocab)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `dilmanc-dataset-${($('#signer').value || 'komanda').trim()}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    a.download = `elvo-dataset-${($('#signer').value || 'komanda').trim()}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
     a.click(); URL.revokeObjectURL(a.href);
   };
   $('#importInput').onchange = async (e) => {
@@ -612,7 +612,7 @@ function bindWords() {
   };
   $('#modelDlBtn').onclick = async () => {
     if (!S.model) return;
-    try { downloadText(await M.exportBundle(S.model, S.meta, S.vocab), 'dilmanc-hazir-model.json'); }
+    try { downloadText(await M.exportBundle(S.model, S.meta, S.vocab), 'elvo-hazir-model.json'); }
     catch (e) { toast('Model ixrac olunmadı: {error}', {error: errorText(e)}); }
   };
   $('#modelImportInput').onchange = async (e) => {
@@ -648,4 +648,4 @@ boot().catch((e) => {
 });
 window.addEventListener('pagehide', () => { speech.stop(); vision.stop(); rec?.abort(); clearTimeout(S.live.timer); });
 // for the browser console during the hackathon
-window.dilmanc = { S, vision };
+window.elvo = { S, vision };

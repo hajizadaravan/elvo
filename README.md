@@ -1,16 +1,18 @@
-# Dilmanc
+<p><img src="assets/elvo-logo.svg" alt="Elvo" width="220"></p>
+
+# Elvo
 
 **A voice for signing hands.** A browser-based sign recognition prototype for a clinic reception scenario in Azerbaijan.
 
-Dilmanc learns a small, user-recorded vocabulary, recognizes signs through a webcam, composes predefined Azerbaijani phrases, and reads them aloud. A speech-to-text panel lets a hearing person reply on screen.
+Elvo learns a small, user-recorded vocabulary, recognizes signs through a webcam, composes predefined Azerbaijani phrases, and reads them aloud. A speech-to-text panel lets a hearing person reply on screen.
 
 This is a limited-vocabulary prototype, not a general sign language translator or a medical device. Validate every sign with fluent local signers before collecting training data.
 
 ## Quick start
 
 ```sh
-git clone https://github.com/reav4nn/dilmanc.git
-cd dilmanc
+git clone https://github.com/reav4nn/elvo.git
+cd elvo
 sh scripts/vendor.sh
 python3 server.py --configure
 ```
@@ -101,6 +103,8 @@ The application's sign processing runs locally. It stores landmark feature sampl
 
 New speech text is sent by the local Python server to Azure; the API key stays on the server. Cached audio is stored locally. The server only listens on `127.0.0.1` and does not serve `.env`, `.git`, or the audio cache as static files. Browser speech recognition may process microphone audio remotely. Do not describe the complete application as offline or entirely local when those services are enabled. Obtain participants' consent before collecting or sharing datasets. Export backups before clearing browser storage.
 
+Elvo was previously called Dilmanc. Browser storage keys, the IndexedDB database, the audio cache folder, and the dataset and model file format IDs keep the `dilmanc` prefix, so data recorded before the rename still loads and exports remain compatible with older copies.
+
 ## Three-minute demo
 
 1. **Problem, 30 seconds:** explain the communication barrier at a clinic reception.
@@ -134,6 +138,7 @@ Runtime assets under `vendor/` remain excluded from Git and must be downloaded a
 
 ```text
 index.html         Application views
+assets/            Elvo logo and mark (SVG)
 css/app.css        Visual styles
 js/main.js         UI, recording, and live recognition flow
 js/i18n.js         Azerbaijani and English interface strings

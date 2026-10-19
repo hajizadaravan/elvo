@@ -22,7 +22,7 @@ test('TTS uses the same-origin server; request includes text and chosen voice on
   };
   await speech.prepare('Başım ağrıyır.');
   assert.equal(sent.url, '/api/speech/synthesize');
-  assert.equal(sent.options.headers['X-Dilmanc-Request'], '1');
+  assert.equal(sent.options.headers['X-Elvo-Request'], '1');
   assert.deepEqual(JSON.parse(sent.options.body), { text: 'Başım ağrıyır.', voice: 'az-AZ-BabekNeural' });
   assert.equal(Object.keys(sent.options.headers).length, 2);
 });

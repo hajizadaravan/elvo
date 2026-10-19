@@ -2,6 +2,7 @@
 // A sample: { id, sign, signer, data: Float32Array(T*D), at: ISO time }
 import { T, D } from './features.js';
 import { validateVocab, classesOf } from './vocab.js';
+// Elvo was called Dilmanc; stored names and format IDs keep that prefix so existing data stays readable.
 const DB = 'dilmanc', STORE = 'samples';
 let dbp = null;
 
@@ -52,7 +53,7 @@ export function toJSON(samples, vocab) {
 
 export function fromJSON(text) {
   const j = JSON.parse(text);
-  if (j.format !== 'dilmanc-dataset' || j.version !== 1 || !Array.isArray(j.samples)) throw new Error('Bu Dilmanc dataset faylı deyil');
+  if (j.format !== 'dilmanc-dataset' || j.version !== 1 || !Array.isArray(j.samples)) throw new Error('Bu Elvo dataset faylı deyil');
   validateVocab(j.vocab);
   const classes = new Set(classesOf(j.vocab)), ids = new Set();
   for (const s of j.samples) {

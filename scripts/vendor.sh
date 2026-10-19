@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Səhnə üçün oflayn rejim: TF.js, MediaPipe və modelləri vendor/ qovluğuna endirir.
-# Sonra Dilmanc internet olmadan işləyir (şriftlərdən başqa; onlar sistem şriftinə keçir).
+# Sonra Elvo internet olmadan işləyir (şriftlərdən başqa; onlar sistem şriftinə keçir).
 set -e
 cd "$(dirname "$0")/.."
 mkdir -p vendor/tasks-vision/wasm vendor/models

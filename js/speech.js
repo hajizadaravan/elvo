@@ -39,7 +39,7 @@ export async function prepare(text, { signal, voice = currentVoice().name } = {}
   let response;
   try {
     response = await fetch('/api/speech/synthesize', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Dilmanc-Request': '1' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Elvo-Request': '1' },
       body: JSON.stringify({ text, voice }), signal,
     });
   } catch (e) {

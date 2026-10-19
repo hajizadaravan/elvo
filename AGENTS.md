@@ -1,10 +1,10 @@
-# Dilmanc: agent instructions
+# Elvo: agent instructions
 
 Read this file, `README.md`, and `DESIGN.md` before changing the project. Inspect the relevant implementation rather than treating documentation as proof of current behavior.
 
 ## Product and scope
 
-Dilmanc is a browser-based, limited-vocabulary sign recognition prototype for a clinic reception scenario in Azerbaijan. Users record labeled landmark sequences, train a small classifier, recognize signs through a webcam, compose predefined Azerbaijani phrases, and speak them aloud through Azure Azerbaijani Neural TTS. The hearing person can reply by speech recognition, typed text, or quick replies.
+Elvo (formerly Dilmanc) is a browser-based, limited-vocabulary sign recognition prototype for a clinic reception scenario in Azerbaijan. Users record labeled landmark sequences, train a small classifier, recognize signs through a webcam, compose predefined Azerbaijani phrases, and speak them aloud through Azure Azerbaijani Neural TTS. The hearing person can reply by speech recognition, typed text, or quick replies.
 
 This is not a general sign language translator, a medical device, or a replacement for a qualified interpreter. Do not introduce claims of universal vocabulary, perfect accuracy, clinical reliability, or guaranteed training speed.
 
@@ -52,7 +52,8 @@ sh scripts/vendor.sh
 
 | File | Responsibility |
 | --- | --- |
-| `index.html` | Four application views, semantic controls, static translation markers |
+| `index.html` | Four application views, semantic controls, static translation markers, inline Elvo logo |
+| `assets/` | Elvo logo and mark as standalone SVG files for documentation; not served by `server.py` |
 | `css/app.css` | Shared tokens, layout, components, responsive and projector modes |
 | `server.py` | Localhost-only static server, Azure TTS proxy, disk audio cache, `--configure` prompt |
 | `js/main.js` | Boot, application state, view rendering, recording, inference flow, training orchestration, import/export |
@@ -95,6 +96,8 @@ If changing versions, update both runtime URLs and `scripts/vendor.sh`, then tes
 Changing dimensions, feature order, normalization, or hand-slot semantics can invalidate saved samples and models. Design an explicit compatibility strategy before doing so.
 
 ### Persistence and interchange
+
+The project was renamed from Dilmanc to Elvo. Every persisted identifier below keeps the `dilmanc` prefix on purpose: renaming one makes existing samples, models, preferences, cached audio, or teammates' exports appear missing or invalid. Change user-visible names only, unless a migration is explicitly requested.
 
 | Location/key | Content |
 | --- | --- |

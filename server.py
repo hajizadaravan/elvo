@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local Dilmanc server + Azure Azerbaijani Neural TTS. Python standard library only."""
+"""Local Elvo server + Azure Azerbaijani Neural TTS. Python standard library only."""
 import argparse
 import getpass
 import hashlib
@@ -183,7 +183,7 @@ class AzureSpeech:
             "Ocp-Apim-Subscription-Key": self.key,
             "Content-Type": "application/ssml+xml; charset=utf-8",
             "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-            "User-Agent": "Dilmanc/0.3"})
+            "User-Agent": "Elvo/0.3"})
         with self.opener(request, timeout=20) as response:
             return response.read(MAX_AUDIO + 1), response.headers.get("Content-Type", "").lower()
 
@@ -246,7 +246,7 @@ def make_handler(service):
             hosts = {f"localhost:{port}", f"127.0.0.1:{port}"}
             origins = {"http://" + host for host in hosts}
             if self.headers.get("Host") not in hosts or (self.headers.get("Origin") and self.headers["Origin"] not in origins):
-                self.send_json(403, {"error": "Bu server yalnız lokal Dilmanc üçün açıqdır."})
+                self.send_json(403, {"error": "Bu server yalnız lokal Elvo üçün açıqdır."})
                 return False
             return True
 
@@ -295,7 +295,7 @@ def make_handler(service):
                 return
             if urlsplit(self.path).path != "/api/speech/synthesize":
                 return self.send_json(404, {"error": "Ünvan tapılmadı."})
-            if self.headers.get("X-Dilmanc-Request") != "1" or self.headers.get_content_type() != "application/json":
+            if self.headers.get("X-Elvo-Request") != "1" or self.headers.get_content_type() != "application/json":
                 return self.send_json(415, {"error": "JSON sorğusu tələb olunur."})
             try:
                 size = int(self.headers.get("Content-Length", "0"))
@@ -309,7 +309,7 @@ def make_handler(service):
                 self.send_header("Content-Type", "audio/mpeg")
                 self.send_header("Content-Length", str(len(audio)))
                 self.send_header("Cache-Control", "no-store")
-                self.send_header("X-Dilmanc-Cache", "hit" if cached else "miss")
+                self.send_header("X-Elvo-Cache", "hit" if cached else "miss")
                 self.end_headers()
                 self.wfile.write(audio)
             except (ValueError, UnicodeDecodeError):
@@ -327,7 +327,7 @@ def make_handler(service):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Dilmanc + Azure Azərbaycan səsi")
+    parser = argparse.ArgumentParser(description="Elvo + Azure Azərbaycan səsi")
     parser.add_argument("--configure", action="store_true", help="Açar və regionu lokal terminalda daxil edin")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
@@ -337,7 +337,7 @@ def main():
     speech = AzureSpeech(key=key, region=region)
     speech.warm()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(speech))
-    print(f"Dilmanc: http://localhost:{args.port}")
+    print(f"Elvo: http://localhost:{args.port}")
     print("Azure ayarları: " + ("daxil edilib; Sına ilə yoxlayın" if speech.configured else "çatışmır; --configure ilə qurun"))
     print("Dayandırmaq üçün Ctrl+C.")
     try:

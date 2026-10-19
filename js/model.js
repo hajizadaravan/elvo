@@ -118,7 +118,7 @@ export async function loadModel() {
 
 function validateShape(model, meta) {
   const input = model.inputs?.[0]?.shape, output = model.outputs?.[0]?.shape;
-  if (!Array.isArray(meta?.classes) || meta.classes.length < 2 || new Set(meta.classes).size !== meta.classes.length || !meta.classes.includes(FON.id) || !meta.classes.every((c) => typeof c === 'string') || input?.length !== 3 || input[1] !== T || input[2] !== D || output?.length !== 2 || output[1] !== meta.classes.length) throw new Error('Modelin ölçüləri və ya sinifləri Dilmanc ilə uyğun deyil.');
+  if (!Array.isArray(meta?.classes) || meta.classes.length < 2 || new Set(meta.classes).size !== meta.classes.length || !meta.classes.includes(FON.id) || !meta.classes.every((c) => typeof c === 'string') || input?.length !== 3 || input[1] !== T || input[2] !== D || output?.length !== 2 || output[1] !== meta.classes.length) throw new Error('Modelin ölçüləri və ya sinifləri Elvo ilə uyğun deyil.');
 }
 
 const count = (v) => Number.isInteger(v) && v >= 0 && v <= 1e6;
@@ -172,7 +172,7 @@ export async function exportBundle(model, meta, vocab) {
 
 export async function importBundle(text) {
   const j = JSON.parse(text);
-  if (j.format !== 'dilmanc-bundle' || j.version !== 1 || j.features?.T !== T || j.features?.D !== D || j.features?.windowMs !== 1000 || !j.model?.modelTopology || !Array.isArray(j.model?.weightSpecs) || typeof j.model.weightData !== 'string') throw new Error('Bu uyğun Dilmanc hazır model paketi deyil.');
+  if (j.format !== 'dilmanc-bundle' || j.version !== 1 || j.features?.T !== T || j.features?.D !== D || j.features?.windowMs !== 1000 || !j.model?.modelTopology || !Array.isArray(j.model?.weightSpecs) || typeof j.model.weightData !== 'string') throw new Error('Bu uyğun Elvo hazır model paketi deyil.');
   validateVocab(j.vocab);
   const known = new Set(classesOf(j.vocab));
   if (!Array.isArray(j.meta?.classes) || !j.meta.classes.every((c) => known.has(c))) throw new Error('Model sinifləri lüğətlə uyğun deyil.');

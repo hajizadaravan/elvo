@@ -135,7 +135,7 @@ class SpeechTests(unittest.TestCase):
             self.assertEqual(credentials(self.root), ("env-key", "eastus"))
 
     def test_http_flow_and_secret_files_are_not_served(self):
-        (self.root / "index.html").write_text("<html>Dilmanc</html>")
+        (self.root / "index.html").write_text("<html>Elvo</html>")
         (self.root / ".env").write_text("PRIVATE-KEY")
         (self.root / ".git").mkdir()
         (self.root / ".git/config").write_text("private config")
@@ -149,7 +149,7 @@ class SpeechTests(unittest.TestCase):
             with urlopen(base + "/api/speech/status") as r:
                 self.assertTrue(json.load(r)["configured"])
             with urlopen(base + "/?nocam") as r:
-                self.assertIn(b"Dilmanc", r.read())
+                self.assertIn(b"Elvo", r.read())
             for url in ["/.env", "/.git/config", "/%2eenv", "/js/../.env", "/.dilmanc-cache/tts/file.mp3", "/server.py", "/js/"]:
                 with self.assertRaises(HTTPError) as e:
                     urlopen(base + url)
@@ -157,12 +157,12 @@ class SpeechTests(unittest.TestCase):
             data = json.dumps({"text": "Salam!", "voice": "az-AZ-BanuNeural"}).encode()
             for origin, marker, expected in [("https://evil.example", "1", 403), (base, "", 415)]:
                 with self.assertRaises(HTTPError) as e:
-                    urlopen(Request(base + "/api/speech/synthesize", data=data, headers={"Content-Type": "application/json", "Origin": origin, "X-Dilmanc-Request": marker}))
+                    urlopen(Request(base + "/api/speech/synthesize", data=data, headers={"Content-Type": "application/json", "Origin": origin, "X-Elvo-Request": marker}))
                 self.assertEqual(e.exception.code, expected)
             for expected_cache in ("miss", "hit"):
-                request = Request(base + "/api/speech/synthesize", data=data, headers={"Content-Type": "application/json", "Origin": base, "X-Dilmanc-Request": "1"})
+                request = Request(base + "/api/speech/synthesize", data=data, headers={"Content-Type": "application/json", "Origin": base, "X-Elvo-Request": "1"})
                 with urlopen(request) as r:
-                    self.assertEqual(r.headers["X-Dilmanc-Cache"], expected_cache)
+                    self.assertEqual(r.headers["X-Elvo-Cache"], expected_cache)
                     self.assertEqual(r.headers["Content-Type"], "audio/mpeg")
                     self.assertEqual(r.read(), b"ID3-test-audio")
             self.assertEqual(len(self.requests), 1)

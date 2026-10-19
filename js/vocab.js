@@ -1,4 +1,4 @@
-// The vocabulary: what each sign is called and what Dilmanc says out loud.
+// The vocabulary: what each sign is called and what Elvo says out loud.
 // Sign ids are ASCII and never change once samples exist; the word and the spoken phrase can be edited.
 // IMPORTANT: confirm every sign with a fluent Azerbaijani Sign Language signer before recording.
 
