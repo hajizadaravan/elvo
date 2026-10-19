@@ -4,7 +4,7 @@ Read this file, `README.md`, and `DESIGN.md` before changing the project. Inspec
 
 ## Product and scope
 
-Dilmanc is a browser-based, limited-vocabulary sign recognition prototype for a clinic reception scenario in Azerbaijan. Users record labeled landmark sequences, train a small classifier, recognize signs through a webcam, compose predefined Azerbaijani phrases, and speak them aloud. A speech-to-text panel displays the hearing person's reply.
+Dilmanc is a browser-based, limited-vocabulary sign recognition prototype for a clinic reception scenario in Azerbaijan. Users record labeled landmark sequences, train a small classifier, recognize signs through a webcam, compose predefined Azerbaijani phrases, and speak them aloud through Azure Azerbaijani Neural TTS. The hearing person can reply by speech recognition, typed text, or quick replies.
 
 This is not a general sign language translator, a medical device, or a replacement for a qualified interpreter. Do not introduce claims of universal vocabulary, perfect accuracy, clinical reliability, or guaranteed training speed.
 
@@ -16,18 +16,21 @@ This is not a general sign language translator, a medical device, or a replaceme
 - Keep changes focused. Do not migrate the stack, introduce a build system, add a backend, or redesign the app unless requested.
 - Preserve existing datasets, vocabulary, model storage, and saved preferences. Ask before destructive data migrations or history rewrites.
 - Do not publish participant datasets, camera captures, speech transcripts, or identifiable signer information in commits, tests, screenshots, or logs.
-- Keep the interface terse. Do not restore the removed camera/model/voice readiness indicators, FPS badge, sidebar summary, or privacy slogan.
+- Keep the interface terse. Do not restore the removed camera/model/voice readiness indicators, FPS badge, sidebar summary, privacy slogan, or a persistent "Voice: ..." status.
+- Never print, commit, or send the Azure key to the browser. It belongs only in the ignored `.env` file or the server process environment.
 - Do not merge, deploy, force-push, or rewrite history without explicit authorization. Never assume a previous approval covers a new destructive action.
 
 ## Run locally
 
-There is no package manifest, build step, framework, or application server.
+There is no build step or frontend framework. `server.py` is a Python standard-library server (Python 3.10+) that serves the app and proxies speech synthesis to Azure.
 
 ```sh
-python3 -m http.server 8000
+sh scripts/vendor.sh
+python3 server.py --configure   # first run: prompts for Azure region and key
+python3 server.py               # later runs
 ```
 
-Open `http://localhost:8000`. Use HTTPS or localhost for camera access, not `file://`. Chrome or Edge is the recommended demo environment; speech features depend on browser and operating system support.
+Open `http://localhost:8000`. Use localhost for camera access, not `file://`. A plain static server (`python3 -m http.server`, `npx serve`) still runs recognition and training, but it has no `/api/speech/*` endpoints, so speech output fails. There is intentionally no Turkish or browser-voice fallback for output. Chrome or Edge is the recommended demo environment; speech recognition still depends on the browser.
 
 For interface checks without requesting the camera:
 
@@ -35,7 +38,7 @@ For interface checks without requesting the camera:
 http://localhost:8000/?nocam
 ```
 
-`?nocam` skips camera startup. It does not bypass the normal dependency loading or provide fake inference, a trained model, or a dataset.
+`?nocam` skips camera startup. It does not bypass the normal dependency loading or provide fake inference, a trained model, or a dataset. Without Azure credentials, the settings view shows one actionable setup message; that is expected.
 
 Optional local dependency download:
 
@@ -51,17 +54,21 @@ sh scripts/vendor.sh
 | --- | --- |
 | `index.html` | Four application views, semantic controls, static translation markers |
 | `css/app.css` | Shared tokens, layout, components, responsive and projector modes |
+| `server.py` | Localhost-only static server, Azure TTS proxy, disk audio cache, `--configure` prompt |
 | `js/main.js` | Boot, application state, view rendering, recording, inference flow, training orchestration, import/export |
+| `js/temporal.js` | Time-based resampling of the one-second window and the recognition gate |
 | `js/i18n.js` | AZ/EN interface dictionary, interpolation, active text bindings, locale persistence |
 | `js/vision.js` | Camera, MediaPipe loading, hand/pose landmarks, rolling frame buffer, overlays |
 | `js/features.js` | Feature schema, sample stacking, augmentation, mirroring |
-| `js/model.js` | TensorFlow.js classifier, split, training, evaluation, inference, persistence |
+| `js/model.js` | TensorFlow.js classifier, splits, training, evaluation, confusion matrix, persistence, model bundles |
 | `js/store.js` | IndexedDB samples, JSON dataset interchange, ID-based upserts |
 | `js/vocab.js` | Default signs, background class, phrase rules, vocabulary persistence |
-| `js/speech.js` | Voice selection, Azerbaijani synthesis and speech recognition |
+| `js/speech.js` | Azure voice selection and playback client, browser speech recognition |
 | `js/charts.js` | Canvas evaluation charts and chart rendering helpers |
 | `scripts/vendor.sh` | Download pinned browser dependencies and landmark models |
-| `tests/i18n.test.mjs` | Node tests for interface translation behavior and coverage |
+| `tests/*.test.js`, `tests/i18n.test.mjs` | Node tests: temporal gate, datasets, model, speech client, translations |
+| `tests/test_server.py` | Python tests for the speech server and static file restrictions |
+| `tests/ui-smoke.cjs`, `tests/load-tf.cjs` | jsdom UI workflow test and the TensorFlow.js loader for tests |
 
 `main.js` imports ES modules directly. TensorFlow.js is loaded as the global `tf` before `model.js` is dynamically imported. Keep that ordering.
 
@@ -77,9 +84,9 @@ If changing versions, update both runtime URLs and `scripts/vendor.sh`, then tes
 
 ### Samples and features
 
-- `T = 30` frames and `D = 134` features per frame.
+- `T = 30` frames and `D = 134` features per frame. Frames are resampled by timestamp from a one-second window (`WINDOW_MS = 1000`), so capture length does not depend on camera FPS. Windows with fewer than 8 frames or gaps over 250 ms are rejected.
 - A sample's `data` is a `Float32Array` of length `4020` at runtime.
-- Sample fields are `{ id, sign, signer, data, at }`; `at` is an ISO timestamp.
+- Sample fields are `{ id, sign, signer, data, at }`; `at` is an ISO timestamp. New recordings also store `handFrames`, `durationMs`, and `rawFrames`.
 - The first two frame features encode nose position relative to the shoulder midpoint.
 - Two 66-feature hand slots follow: right, then left. Each contains presence, relative wrist position, and 21 wrist-relative 3D landmarks.
 - Mirroring swaps hand slots and negates horizontal coordinates. Display mirroring alone is not equivalent to feature mirroring.
@@ -96,14 +103,19 @@ Changing dimensions, feature order, normalization, or hand-slot semantics can in
 | localStorage `dilmanc.model.v1` | Model metadata |
 | localStorage `dilmanc.vocab.v1` | Editable signs and composition rules |
 | localStorage `dilmanc.language` | Interface locale, `az` or `en` |
-| localStorage `dilmanc.voice` | Selected browser voice name |
+| localStorage `dilmanc.azure.voice` | Selected Azure voice, `az-AZ-BanuNeural` or `az-AZ-BabekNeural` |
 | localStorage `dilmanc.threshold` | Confidence threshold as a percentage |
+
+| `.env` (ignored) | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` |
+| `.dilmanc-cache/tts/` (ignored) | Cached MP3 audio keyed by voice and text |
 
 Storage is origin-specific. Changing host or port can make existing browser data appear missing; that does not prove deletion.
 
 Dataset exports use `format: "dilmanc-dataset"` and `version: 1`, with `exportedAt`, `vocab`, and `samples`. Typed arrays become numeric arrays in JSON and are restored on import.
 
-Import uses ID-based replacement, not append-only insertion. An existing sample ID must update the stored sample so corrected signer labels do not create duplicates. Keep unknown sample identities distinct.
+Imports are validated before anything is written: vocabulary shape and IDs, known classes, non-empty signer names, `T * D` finite numbers, and unique IDs. Import uses ID-based replacement, not append-only insertion. An existing sample ID must update the stored sample so corrected signer labels do not create duplicates. Keep unknown sample identities distinct.
+
+Trained models can be exported as a single `format: "dilmanc-bundle"`, `version: 1` JSON file containing topology, weights, class order, vocabulary, and evaluation metadata. Treat imported bundles as untrusted: validate shapes and classes, and keep only typed metadata before rendering it.
 
 The reserved background class ID is `_fon`. Do not rename it or translate it in persisted data. Vocabulary sign IDs also act as foreign keys in samples, model classes, and phrase-rule sequences.
 
@@ -115,11 +127,13 @@ The interface supports Azerbaijani and English. The selected interface language 
 - Use `data-i18n` on static leaf text nodes in HTML.
 - Use `t(key, params)` for generated labels and formatted messages.
 - Use `ui(element, key, params)` for active logs, errors, and messages that must update when the locale changes.
+- Use `data-i18n-placeholder` for translated input placeholders.
+- Module and server errors use Azerbaijani messages as keys. When a message has parameters, attach `error.key` and `error.params` (the server returns `key` and `params` in JSON) and display it through `errorKey`/`errorText` in `main.js`.
 - Do not put translation bindings on containers with nested controls: translation sets `textContent` and would remove children.
 - Keep user-entered vocabulary, signer names, and speech transcripts out of translation bindings.
 - Use the current `locale()` for number, percentage, and time formatting.
 - Switching language must not reset the camera, erase samples, replace vocabulary, or discard the trained model.
-- Azerbaijani voices are preferred, with Turkish voices available as fallback. Do not promise a particular installed voice.
+- Speech output offers only the Azure Azerbaijani voices Banu and Babek. Do not add Turkish voices.
 
 ## Recognition and evaluation
 
@@ -139,20 +153,23 @@ Landmark processing and model training happen in the browser; this implementatio
 
 - Dependencies can load from CDNs when local copies are absent.
 - Google Fonts requests external resources.
-- Browser speech recognition and some synthesis voices may use remote services.
+- New speech text is sent by the local server to Azure. Cached audio stays in `.dilmanc-cache/`.
+- Browser speech recognition may use remote services.
 
 Keep these distinctions in documentation, not as persistent reassuring UI slogans. Do not add network transmission of participant data without explicit authorization.
 
 ## Verification
 
-From the repository root:
+From the repository root, after `sh scripts/vendor.sh`:
 
 ```sh
-node --test tests/i18n.test.mjs
+npm test                 # Node.js 20+
+npm run test:server      # Python server tests
+npm install && npm run test:ui   # jsdom UI workflow
 for file in js/*.js; do node --check "$file" || exit 1; done
 ```
 
-Node.js is for these checks, not an application runtime requirement. There is no `npm test` or production build command currently configured.
+`package.json` uses `"type": "module"`; load TensorFlow.js in tests through `tests/load-tf.cjs`, not `require('vendor/tf.min.js')`. Node.js is for checks only, not an application runtime requirement. Tests use synthetic features and mocked Azure audio; they do not prove live speech or recognition accuracy.
 
 For UI changes, serve the app and check all four views at 390, 768, and 1440 px. Verify:
 
@@ -163,6 +180,7 @@ For UI changes, serve the app and check all four views at 390, 768, and 1440 px.
 - The mobile menu opens, closes, and navigates correctly.
 - Projector mode and keyboard shortcuts still work.
 - Permission/loading/error overlays remain readable; removed readiness indicators stay absent.
+- The Azure setup message appears only when the server is unreachable, unconfigured, or a request fails.
 - No runtime exceptions appear in the browser console.
 
 Use isolated browser storage for automated fixtures. Never clear a person's real dataset to make a test pass.

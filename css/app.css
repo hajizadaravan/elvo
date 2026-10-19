@@ -63,6 +63,13 @@ h1, h2, h3, p { margin: 0; }
 .muted { color: var(--muted); }
 .small { font-size: var(--fs-small); }
 [hidden] { display: none !important; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.matrix-scroll { overflow-x:auto; margin:16px 0; }
+.matrix-scroll td { text-align:center; }
+.correct-cell { background:var(--active); font-weight:600; }
+.reply-body { display: grid; gap: 14px; }
+.reply-input { flex: 1; min-width: 120px; }
+.wrong-cell { color:var(--negative); font-weight:600; }
 
 /* ---------- the frame: sidebar + top bar share one tinted ground, no rule between them ---------- */
 .app { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); grid-template-rows: 48px minmax(0, 1fr); height: 100vh; }

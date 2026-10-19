@@ -42,6 +42,7 @@ test('all static labels and literal runtime messages have English translations',
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const keys = [
     ...[...main.matchAll(/\b(?:t|toast|log|recLog|stopRecording)\('([^']+)'/g)].map((m) => m[1]),
+    ...[...main.matchAll(/\bui\([^,\n]+,\s*'([^']+)'/g)].map((m) => m[1]),
     ...[...html.matchAll(/data-i18n>([^<]+)</g)].map((m) => m[1].trim()),
   ];
   setLanguage('en');

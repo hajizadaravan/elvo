@@ -1,5 +1,6 @@
 // Camera + MediaPipe hand and pose landmarks. Uses ./vendor/ when present (offline stage), otherwise the CDN.
-import { frameFeatures, T } from './features.js';
+import { frameFeatures } from './features.js';
+import { WINDOW_MS, resampleTimed } from './temporal.js';
 
 const CDN = {
   vision: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',
@@ -22,7 +23,7 @@ export class Vision {
     this.video.muted = true; this.video.playsInline = true; this.video.autoplay = true;
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d');
-    this.frames = [];           // the last T feature frames
+    this.frames = [];           // timestamped features spanning the last second
     this.handsSeenAt = 0;
     this.listeners = new Set();
     this.ready = false; this.running = false; this.fps = 0;
@@ -48,10 +49,12 @@ export class Vision {
   }
 
   async start() {
+    if (this.running) return;
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
     this.video.srcObject = stream;
     await this.video.play();
     this.canvas.width = this.video.videoWidth; this.canvas.height = this.video.videoHeight;
+    this.frames = []; this._last = -1;
     this.running = true;
     let fpsT = performance.now();
     const loop = () => {
@@ -66,7 +69,8 @@ export class Vision {
         }
         const { f, hands: n } = frameFeatures(hands, this._pose);
         if (n) this.handsSeenAt = ts;
-        this.frames.push(f); if (this.frames.length > T) this.frames.shift();
+        this.frames.push({ f, ts });
+        while (this.frames.length > 2 && this.frames[1].ts < ts - WINDOW_MS) this.frames.shift();
         this.draw(hands);
         this._n += 1;
         if (ts - fpsT > 1000) { this.fps = Math.round((this._n * 1000) / (ts - fpsT)); this._n = 0; fpsT = ts; }
@@ -97,5 +101,14 @@ export class Vision {
     }
   }
 
-  window() { return this.frames.length === T ? this.frames : null; }
+  window() {
+    const end = this.frames.at(-1)?.ts;
+    return end == null ? null : resampleTimed(this.frames, end - WINDOW_MS);
+  }
+
+  stop() {
+    this.running = false;
+    this.video.srcObject?.getTracks().forEach((track) => track.stop());
+    this.video.srcObject = null; this.frames = [];
+  }
 }

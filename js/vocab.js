@@ -37,6 +37,17 @@ export function loadVocab() {
 
 export function saveVocab(v) { localStorage.setItem(KEY, JSON.stringify(v)); }
 
+export function validateVocab(v) {
+  if (!v || !Array.isArray(v.signs) || !Array.isArray(v.rules) || v.signs.length > 500) throw new Error('Lüğət düzgün deyil.');
+  const ids = new Set();
+  for (const s of v.signs) {
+    if (!s || typeof s.id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(s.id) || ids.has(s.id) || typeof s.word !== 'string' || !s.word.trim() || typeof s.say !== 'string') throw new Error('İşarə adı və ya ID-si düzgün deyil.');
+    ids.add(s.id);
+  }
+  for (const r of v.rules) if (!r || !Array.isArray(r.seq) || r.seq.length < 2 || !r.seq.every((id) => ids.has(id)) || typeof r.say !== 'string') throw new Error('Cümlə qaydası düzgün deyil.');
+  return v;
+}
+
 export function resetVocab() { localStorage.removeItem(KEY); return loadVocab(); }
 
 // Every class the model learns: the signs plus the background class.

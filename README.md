@@ -11,12 +11,13 @@ This is a limited-vocabulary prototype, not a general sign language translator o
 ```sh
 git clone https://github.com/reav4nn/dilmanc.git
 cd dilmanc
-python3 -m http.server 8000
+sh scripts/vendor.sh
+python3 server.py --configure
 ```
 
-Open `http://localhost:8000` and allow camera access. Alternatively, run `npx serve .` and open the URL it prints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
+Python 3.10+ is required; the server uses the standard library only. Enter your Azure Speech region and key at the terminal prompt; the key is hidden and saved in a local ignored `.env` file. Open `http://localhost:8000` and allow camera access. On subsequent starts, run `python3 server.py`. Static servers such as `npx serve` do not provide the Azure speech endpoints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
 
-Use a current version of Chrome or Edge. Available Azerbaijani and Turkish speech voices depend on the browser, operating system, and installed voices. Check the voice selector before presenting; do not assume a specific voice is available.
+Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [Azure speech setup](#azure-speech-setup).
 
 ## Features
 
@@ -26,8 +27,10 @@ Use a current version of Chrome or Edge. Available Azerbaijani and Turkish speec
 - In-browser TensorFlow.js training and per-class evaluation.
 - Random stratified validation or a held-out signer evaluation, followed by training a final model on all samples.
 - Editable vocabulary and phrase composition rules.
-- Speech synthesis and browser-dependent Azerbaijani speech recognition.
-- Dataset export and import across team members' computers.
+- Azure Azerbaijani speech synthesis with local audio caching; browser-dependent Azerbaijani speech recognition, typed replies, and quick replies.
+- Dataset validation and export/import across team members' computers.
+- Portable model bundles containing weights, class order, vocabulary, and evaluation metadata.
+- Confusion matrices and balanced recall for evaluation.
 - Projector mode and local dependency downloads.
 
 ## Workflow
@@ -53,13 +56,13 @@ For an honest demo result, report the number of test samples, class coverage, an
 
 1. MediaPipe detects up to two hands and periodically estimates body landmarks.
 2. Each frame becomes 134 features describing hand presence, wrist position relative to the shoulders, and hand shape relative to the wrist.
-3. A 30-frame window feeds a small temporal Conv1D classifier trained with TensorFlow.js.
+3. A one-second window is resampled to 30 frames and feeds a small temporal Conv1D classifier trained with TensorFlow.js; long tracking stalls are rejected.
 4. Training augmentation adds temporal crops, position and scale variation, shape jitter, and random mirroring. Mirroring swaps hand slots and flips horizontal coordinates; it is a robustness technique, not proof of left-handed signer accuracy.
-5. Predictions are smoothed and filtered by a confidence threshold.
+5. Predictions require a stable winner, confidence threshold, and margin over the runner-up. Repeating the same sign requires a neutral interval.
 6. Predefined rules compose recognized tokens, for example `baş + ağrı` becomes `Başım ağrıyır.`
 7. The phrase is spoken after a pause or when the user presses Enter.
 
-Thirty frames are approximately one second at 30 FPS. Actual capture duration and training time depend on the device.
+Capture spans one second across supported camera frame rates. Training time depends on the device and dataset. Held-out signer evaluation requires every class in both partitions; the final live model is then trained on all samples.
 
 ## Local dependencies and connectivity
 
@@ -69,13 +72,34 @@ sh scripts/vendor.sh
 
 This downloads TensorFlow.js, MediaPipe, and landmark models into `vendor/`. These files are excluded from Git. With the downloads complete, local sign recording, training, and recognition can run without fetching these dependencies from a CDN.
 
-Google Fonts still requires a network connection; system fonts are used as a fallback. Speech recognition and some speech synthesis voices may use browser or provider services and may require internet access. Test the exact presentation setup before relying on offline operation.
+Google Fonts still requires a network connection; system fonts are used as a fallback. Speech recognition may use the browser provider's services and require internet. Azure speech requires internet for uncached text; the same text and voice can be replayed from `.dilmanc-cache/tts/` offline while the local server is running. Test the exact presentation setup before relying on offline operation.
+
+## Azure speech setup
+
+1. In the Azure portal, open or create a Speech resource. Copy `KEY 1` and the short region code, such as `westeurope`, from **Keys and Endpoint**. Do not use the endpoint URL as the region.
+2. Run `python3 server.py --configure` (`py server.py --configure` on Windows). Enter the region and key in the terminal; the key is hidden and saved only to the ignored `.env` file.
+3. Open `http://localhost:8000`. Later, start the app with `python3 server.py`.
+4. In **Vocabulary & settings**, choose Banu (`az-AZ-BanuNeural`) or Babek (`az-AZ-BabekNeural`) and press **Test**. Only Test confirms that the key works.
+5. Before a demo, press **Prepare demo voices** while online. Vocabulary phrases, composition rules, and the standard demo phrases are cached for the selected voice. Azure usage may be billed according to your subscription.
+
+Cached audio is stored in `.dilmanc-cache/tts/` and is reused only for the same text and voice. Dataset and model exports do not include audio; copy `.dilmanc-cache/` separately to a backup computer. Changing the port changes browser storage, so export the dataset before switching servers. If port 8000 is already in use, stop the old server first.
+
+| Message | Action |
+| --- | --- |
+| Speech server unavailable | Stop the static server and run `python3 server.py` |
+| Azure not configured | Run `python3 server.py --configure` |
+| Check the Azure key, region, and access | Confirm both values come from the same Speech resource, then reconfigure |
+| Request limit reached | Check the Azure quota and try again later |
+| Could not connect to Azure | Check the internet connection; only previously cached text can play |
+| Browser blocked audio | Press **Speak** or **Test**, then check the site's audio permission |
+
+The server is intended for `127.0.0.1` only. Public hosting is outside the scope of this setup.
 
 ## Privacy and storage
 
 The application's sign processing runs locally. It stores landmark feature samples and the trained model in browser storage, not recorded video on an application server.
 
-Browser speech services may process audio or text remotely. Do not describe the complete application as offline or entirely local when those services are enabled. Obtain participants' consent before collecting or sharing datasets. Export backups before clearing browser storage.
+New speech text is sent by the local Python server to Azure; the API key stays on the server. Cached audio is stored locally. The server only listens on `127.0.0.1` and does not serve `.env`, `.git`, or the audio cache as static files. Browser speech recognition may process microphone audio remotely. Do not describe the complete application as offline or entirely local when those services are enabled. Obtain participants' consent before collecting or sharing datasets. Export backups before clearing browser storage.
 
 ## Three-minute demo
 
@@ -95,11 +119,16 @@ Prepare a backup recording. Avoid promising a fixed training time or perfect acc
 
 For camera-free interface testing, open `http://localhost:8000/?nocam`.
 
-Run the interface translation tests with Node.js:
+Run the JavaScript tests (Node.js 20+, with downloaded vendor assets) and Python server tests:
 
 ```sh
-node --test tests/i18n.test.mjs
+npm test
+npm run test:server
 ```
+
+For the simulated UI workflow, run `npm install` and `npm run test:ui`. Tests use synthetic sign features and mocked Azure audio, not live speech credentials or a real camera. Export the dataset before migration and keep the same browser profile and origin to retain browser storage. Portable model bundles can be imported on another computer without retraining; audio caches must be copied separately.
+
+Runtime assets under `vendor/` remain excluded from Git and must be downloaded after cloning.
 
 ## Project structure
 
@@ -112,7 +141,9 @@ js/vision.js       Camera and MediaPipe integration
 js/features.js     Feature extraction and augmentation
 js/model.js        Training, evaluation, inference, and persistence
 js/vocab.js        Vocabulary and phrase composition
-js/speech.js       Browser speech synthesis and recognition
+js/speech.js       Azure audio client and browser speech recognition
+js/temporal.js     Fixed-duration resampling and recognition gating
+server.py          Local Azure speech server and disk audio cache
 js/store.js        IndexedDB storage and dataset import/export
 js/charts.js       Evaluation charts
 scripts/vendor.sh  Local dependency downloader

@@ -1,11 +1,13 @@
-// Speaking Azerbaijani and listening to it, with what the browser has.
-// Best voices: Microsoft Edge ships "Azerbaijani (Banu / Babek) Online (Natural)". Chrome falls back to Turkish.
-const VOICE_KEY = 'dilmanc.voice';
+// Azerbaijani Neural TTS through the same-origin local server. No Azure key in the browser.
+const VOICE_KEY = 'dilmanc.azure.voice';
+const AZURE_VOICES = [
+  { name: 'az-AZ-BanuNeural', label: 'Banu · qadın', lang: 'az-AZ' },
+  { name: 'az-AZ-BabekNeural', label: 'Babek · kişi', lang: 'az-AZ' },
+];
+let activeController = null, audio = null, audioURL = null, playbackDone = null;
 
 export function voices() {
-  const all = speechSynthesis.getVoices();
-  const rank = (v) => (v.lang.toLowerCase().startsWith('az') ? 0 : v.lang.toLowerCase().startsWith('tr') ? 1 : 2);
-  return all.filter((v) => rank(v) < 2).sort((a, b) => rank(a) - rank(b) || Number(/natural|online/i.test(b.name)) - Number(/natural|online/i.test(a.name)));
+  return AZURE_VOICES.map((v) => ({ ...v }));
 }
 
 export function currentVoice() {
@@ -14,22 +16,75 @@ export function currentVoice() {
   return list.find((v) => v.name === saved) || list[0] || null;
 }
 
-export function setVoice(name) { localStorage.setItem(VOICE_KEY, name); }
-
-export function speak(text) {
-  if (!text || !('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  const v = currentVoice();
-  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'az-AZ';
-  u.rate = 0.95;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+export function setVoice(name) {
+  if (!AZURE_VOICES.some((v) => v.name === name)) throw new Error('Azərbaycan səsi seçin.');
+  localStorage.setItem(VOICE_KEY, name);
 }
 
-export function onVoices(fn) { if ('speechSynthesis' in window) { fn(); speechSynthesis.addEventListener('voiceschanged', fn); } }
+export async function status() {
+  try {
+    const response = await fetch('/api/speech/status', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+    if (!response.ok) throw new Error();
+    const result = await response.json();
+    if (result.provider !== 'azure') throw new Error();
+    return { reachable: true, ...result };
+  } catch { return { reachable: false, configured: false, cached: 0 }; }
+}
+
+export async function prepare(text, { signal, voice = currentVoice().name } = {}) {
+  let response;
+  try {
+    response = await fetch('/api/speech/synthesize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Dilmanc-Request': '1' },
+      body: JSON.stringify({ text, voice }), signal,
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    throw new Error('Səs serverinə bağlantı yoxdur. python3 server.py ilə başladın.');
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error || 'Azure səsi alınmadı. python3 server.py ilə başladın və Azure ayarlarını yoxlayın.');
+    if (typeof body.key === 'string') { error.key = body.key; error.params = body.params && typeof body.params === 'object' ? body.params : {}; }
+    throw error;
+  }
+  if (!response.headers.get('Content-Type')?.startsWith('audio/')) throw new Error('Server audio qaytarmadı.');
+  return response.blob();
+}
+
+export function stop() {
+  activeController?.abort(); activeController = null;
+  if (audio) { audio.onended = null; audio.onerror = null; audio.pause(); audio = null; }
+  if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
+  playbackDone?.(); playbackDone = null;
+}
+
+export async function speak(text) {
+  if (!text?.trim()) return false;
+  stop();
+  const controller = new AbortController(); activeController = controller;
+  try {
+    const blob = await prepare(text, { signal: controller.signal });
+    if (activeController !== controller) return false;
+    const url = URL.createObjectURL(blob), player = new Audio(url);
+    audioURL = url; audio = player;
+    await new Promise((resolve, reject) => {
+      playbackDone = resolve;
+      player.onended = resolve;
+      player.onerror = () => reject(new Error('Audio səslənmədi. Səsləndir düyməsini yenidən basın.'));
+      player.play().catch(() => reject(new Error('Brauzer səsi blokladı. Səsləndir və ya Sına düyməsini basın.')));
+    });
+    return activeController === controller;
+  } catch (e) {
+    if (e.name === 'AbortError') return false;
+    throw e;
+  } finally { if (activeController === controller) stop(); }
+}
+
+export function onVoices(fn) { fn(); }
 
 // Hearing person → text on screen, so the deaf person can read the answer.
-export function listener({ onText, onEnd }) {
+export function listener({ onText, onEnd, onError }) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
@@ -43,6 +98,6 @@ export function listener({ onText, onEnd }) {
     onText(final, interim);
   };
   r.onend = () => onEnd?.();
-  r.onerror = () => onEnd?.();
+  r.onerror = (e) => { onError?.(e.error); };
   return r;
 }
