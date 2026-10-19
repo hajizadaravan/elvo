@@ -80,5 +80,26 @@ export function augment(sample, rand = Math.random) {
       out[t * D + d] = v;
     }
   }
+  return rand() < 0.5 ? mirror(out) : out;
+}
+
+// The same sign made with the other hand: swap the two hand slots and flip every x.
+// Left-handed signers mirror signs, so the model should not care which hand leads.
+export function mirror(sample) {
+  const out = new Float32Array(T * D);
+  for (let t = 0; t < T; t++) {
+    const o = t * D;
+    out[o] = -sample[o]; out[o + 1] = sample[o + 1];
+    for (let h = 0; h < 2; h++) {
+      const from = o + 2 + h * HAND, to = o + 2 + (1 - h) * HAND;
+      out[to] = sample[from];
+      out[to + 1] = -sample[from + 1]; out[to + 2] = sample[from + 2];
+      for (let k = 0; k < 21; k++) {
+        out[to + 3 + k * 3] = -sample[from + 3 + k * 3];
+        out[to + 4 + k * 3] = sample[from + 4 + k * 3];
+        out[to + 5 + k * 3] = sample[from + 5 + k * 3];
+      }
+    }
+  }
   return out;
 }

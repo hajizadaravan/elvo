@@ -26,6 +26,7 @@ Sonra `http://localhost:3000` (və ya `:8000`) ünvanını açın.
 1. **MediaPipe** hər kadrda iki əlin 21 nöqtəsini və çiyinləri tapır.
 2. Hər kadr 134 rəqəmə çevrilir: əlin forması (biləyə nisbətən) və əlin harada olduğu (çiyinlərə nisbətən). Ona görə model kameranın məsafəsindən və insanın boyundan çox asılı deyil.
 3. 30 kadr (təxminən 1 saniyə) bir nümunədir. Kiçik **Conv1D** şəbəkə (TensorFlow.js) bu ardıcıllığı işarəyə çevirir.
+   Öyrətmə zamanı hər nümunənin güzgü variantı da yaradılır, ona görə solaxay insan da tanınır, hətta datada solaxay olmasa belə.
 4. Tanınan işarələr qaydalarla cümləyə çevrilir: `baş + ağrı` → "Başım ağrıyır." Qaydaları "Lüğət və ayarlar" bölməsində dəyişmək olur.
 5. 1,8 saniyə sükutdan sonra cümlə səsləndirilir (və ya `Enter`).
 
