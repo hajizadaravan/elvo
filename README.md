@@ -20,6 +20,7 @@ Use a current version of Chrome or Edge. Available Azerbaijani and Turkish speec
 
 ## Features
 
+- Azerbaijani and English interface languages, with a saved AZ / EN selection. Vocabulary, spoken phrases, and speech recognition remain Azerbaijani.
 - Live webcam sign recognition with hand landmark overlays and confidence scores.
 - Recording with a countdown, signer labels, and automatic rejection of sign samples with insufficient hand visibility.
 - In-browser TensorFlow.js training and per-class evaluation.
@@ -94,12 +95,19 @@ Prepare a backup recording. Avoid promising a fixed training time or perfect acc
 
 For camera-free interface testing, open `http://localhost:8000/?nocam`.
 
+Run the interface translation tests with Node.js:
+
+```sh
+node --test tests/i18n.test.mjs
+```
+
 ## Project structure
 
 ```text
 index.html         Application views
 css/app.css        Visual styles
 js/main.js         UI, recording, and live recognition flow
+js/i18n.js         Azerbaijani and English interface strings
 js/vision.js       Camera and MediaPipe integration
 js/features.js     Feature extraction and augmentation
 js/model.js        Training, evaluation, inference, and persistence

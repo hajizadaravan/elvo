@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dilmanc: işarə dilindən səsə</title>
-<meta name="description" content="Dilmanc kameradan Azərbaycan işarə dilini tanıyır və onu səsli Azərbaycan dilinə çevirir. Hər şey brauzerdə işləyir.">
+<title>Dilmanc</title>
+<meta name="description" content="Dilmanc">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
@@ -15,53 +15,49 @@
   <aside class="sidebar" id="sidebar">
     <div class="wordmark">
       <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g stroke="var(--chart-1)" stroke-width="1.8" stroke-linecap="round"><path d="M12 21 5 11M12 21 8 5M12 21 12 3M12 21 16 5M12 21 20 12"/></g><g fill="var(--text)"><circle cx="5" cy="11" r="1.6"/><circle cx="8" cy="5" r="1.6"/><circle cx="12" cy="3" r="1.6"/><circle cx="16" cy="5" r="1.6"/><circle cx="20" cy="12" r="1.6"/><circle cx="12" cy="21" r="1.8"/></g></svg>
-      <div><b>Dilmanc</b><span>işarə dilindən səsə</span></div>
+      <div><b>Dilmanc</b></div>
     </div>
     <nav class="nav" aria-label="Bölmələr">
-      <button data-go="live" aria-current="page">Canlı tərcümə</button>
-      <button data-go="record">Nümunə yazma <span class="num" id="navSamples">0</span></button>
-      <button data-go="model">Model</button>
-      <button data-go="words">Lüğət və ayarlar</button>
+      <button data-go="live" aria-current="page" data-i18n>Canlı tərcümə</button>
+      <button data-go="record"><span data-i18n>Nümunə yazma</span> <span class="num" id="navSamples">0</span></button>
+      <button data-go="model" data-i18n>Model</button>
+      <button data-go="words" data-i18n>Lüğət və ayarlar</button>
     </nav>
-    <div class="side-foot">
-      <div>Dataset: <b id="footData">-</b></div>
-      <div>Model: <b id="footModel">öyrədilməyib</b></div>
-      <div>Hər şey bu brauzerdə qalır; heç nə serverə göndərilmir.</div>
-    </div>
   </aside>
 
   <header class="topbar">
-    <button class="btn ghost menu-toggle" id="menuBtn" aria-label="Menyu">Menyu</button>
+    <button class="btn ghost menu-toggle" id="menuBtn" data-i18n>Menyu</button>
     <span class="crumb" id="crumb">Canlı tərcümə</span>
     <span class="spacer"></span>
-    <span class="status"><i class="dot" id="camDot"></i><span id="camStatus">Kamera bağlıdır</span></span>
-    <span class="status"><i class="dot" id="modelDot"></i><span id="modelStatus">Model yoxdur</span></span>
-    <span class="status" id="voiceStatus">Səs: -</span>
+    <select class="input language-select" id="language" aria-label="Language">
+      <option value="az">AZ</option>
+      <option value="en">EN</option>
+    </select>
   </header>
 
   <main class="sheet" id="sheet">
     <!-- ============ LIVE ============ -->
     <section class="view" data-view="live">
       <div class="title-row">
-        <div><h1>Canlı tərcümə</h1><p id="liveFinding">Model hələ öyrədilməyib.</p></div>
+        <div><h1 data-i18n>Canlı tərcümə</h1><p id="liveFinding" hidden></p></div>
         <div class="actions">
-          <label class="switch-row"><input type="checkbox" class="switch" id="autoSpeak" checked> Avtomatik səsləndir</label>
+          <label class="switch-row"><input type="checkbox" class="switch" id="autoSpeak" checked> <span data-i18n>Avtomatik səsləndir</span></label>
           <button class="btn" id="stageBtn">Səhnə rejimi</button>
         </div>
       </div>
       <div class="grid">
         <div class="card span-7"><div class="card-body" style="padding:12px"><div class="cam-slot" data-cam="live"></div></div></div>
         <div class="card span-5">
-          <div class="card-head"><h2>İndi görünən işarə</h2><span class="pill num" id="fpsPill">- kadr/s</span></div>
+          <div class="card-head"><h2 data-i18n>İşarə</h2></div>
           <div class="card-body">
             <div class="seen-word none" id="seenWord">-</div>
-            <p class="seen-sub" id="seenSub">Kamera və model hazır olanda burada tanınan işarə görünəcək.</p>
+            <p class="seen-sub" id="seenSub"></p>
             <div class="probs" id="probs"></div>
           </div>
         </div>
         <div class="card span-7">
-          <div class="card-head"><h2>Dilmanc deyir</h2>
-            <div class="actions"><button class="btn" id="undoBtn">Geri al</button><button class="btn" id="clearBtn">Təmizlə</button><button class="btn primary" id="speakBtn">Səsləndir <kbd>Enter</kbd></button></div>
+          <div class="card-head"><h2 data-i18n>Cümlə</h2>
+            <div class="actions"><button class="btn" id="undoBtn" data-i18n>Geri al</button><button class="btn" id="clearBtn" data-i18n>Təmizlə</button><button class="btn primary" id="speakBtn"><span data-i18n>Səsləndir</span> <kbd>Enter</kbd></button></div>
           </div>
           <div class="card-body">
             <p class="sentence empty" id="sentence">İşarə gözlənilir…</p>
@@ -70,8 +66,8 @@
           </div>
         </div>
         <div class="card span-5">
-          <div class="card-head"><h2>Cavab: danışıq mətnə</h2><button class="btn" id="micBtn">Danış</button></div>
-          <div class="card-body"><p class="reply" id="reply"><span class="muted">Həkim danışanda sözləri burada yazılır ki, kar insan oxuya bilsin.</span></p></div>
+          <div class="card-head"><h2 data-i18n>Cavab</h2><button class="btn" id="micBtn">Danış</button></div>
+          <div class="card-body"><p class="reply" id="reply"></p></div>
         </div>
       </div>
     </section>
@@ -79,31 +75,31 @@
     <!-- ============ RECORD ============ -->
     <section class="view" data-view="record" hidden>
       <div class="title-row">
-        <div><h1>Nümunə yazma</h1><p id="recFinding">Hər işarə üçün ən azı 20 nümunə, 3 və daha çox imzalayandan.</p></div>
+        <div><h1 data-i18n>Nümunə yazma</h1><p id="recFinding"></p></div>
       </div>
       <div class="grid">
         <div class="card span-5">
-          <div class="card-head"><h2>İşarələr</h2><span class="muted small">Seçmək üçün sətrə toxunun</span></div>
+          <div class="card-head"><h2 data-i18n>İşarələr</h2></div>
           <div class="card-body" style="padding:8px 4px 8px">
-            <table><thead><tr><th>İşarə</th><th class="r">Nümunə</th><th class="r">İmzalayan</th></tr></thead><tbody id="signRows"></tbody></table>
+            <table><thead><tr><th data-i18n>İşarə</th><th class="r" data-i18n>Nümunə</th><th class="r" data-i18n>İmzalayan</th></tr></thead><tbody id="signRows"></tbody></table>
           </div>
         </div>
         <div class="card span-7">
           <div class="card-body" style="padding:12px;display:grid;gap:16px">
             <div class="cam-slot" data-cam="record"></div>
             <div class="inline">
-              <div class="field"><label for="signer">İmzalayan</label><input class="input" id="signer" placeholder="məs. Aysel" autocomplete="off" style="width:170px"></div>
-              <div class="field"><label for="takes">Ardıcıl</label><select class="input" id="takes"><option value="1">1 dəfə</option><option value="5">5 dəfə</option><option value="10" selected>10 dəfə</option><option value="20">20 dəfə</option></select></div>
+              <div class="field"><label for="signer" data-i18n>İmzalayan</label><input class="input" id="signer" autocomplete="off" style="width:170px"></div>
+              <div class="field"><label for="takes" data-i18n>Nümunə sayı</label><select class="input" id="takes"><option value="1">1</option><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select></div>
               <span style="flex:1"></span>
               <button class="btn primary lg" id="recBtn">Yaz <kbd>Boşluq</kbd></button>
             </div>
-            <p class="log" id="recLog">İşarəni seçin, adınızı yazın və “Yaz” düyməsini basın. Hər nümunə 1 saniyədir.</p>
+            <p class="log" id="recLog"></p>
           </div>
         </div>
         <div class="card span-12">
-          <div class="card-head"><h2>Son nümunələr</h2><span class="muted small" id="recentNote"></span></div>
+          <div class="card-head"><h2 data-i18n>Son nümunələr</h2><span class="muted small" id="recentNote"></span></div>
           <div class="card-body" style="padding:8px 4px">
-            <table><thead><tr><th>İşarə</th><th>İmzalayan</th><th class="r">Əl görünən kadr</th><th class="r">Vaxt</th><th class="r"></th></tr></thead><tbody id="recentRows"></tbody></table>
+            <table><thead><tr><th data-i18n>İşarə</th><th data-i18n>İmzalayan</th><th class="r" data-i18n>Əl görünən kadr</th><th class="r" data-i18n>Vaxt</th><th class="r"></th></tr></thead><tbody id="recentRows"></tbody></table>
           </div>
         </div>
       </div>
@@ -112,69 +108,68 @@
     <!-- ============ MODEL ============ -->
     <section class="view" data-view="model" hidden>
       <div class="title-row">
-        <div><h1>Model</h1><p id="modelFinding">Nümunələr yazıldıqdan sonra modeli burada öyrədin.</p></div>
+        <div><h1 data-i18n>Model</h1><p id="modelFinding"></p></div>
         <div class="actions" style="align-items:end">
-          <div class="field"><label for="holdout">Yoxlama üsulu</label><select class="input" id="holdout"></select></div>
-          <div class="field"><label for="epochs">Epox</label><select class="input" id="epochs"><option>20</option><option selected>35</option><option>60</option></select></div>
-          <button class="btn primary lg" id="trainBtn">Öyrət</button>
+          <div class="field"><label for="holdout" data-i18n>Yoxlama üsulu</label><select class="input" id="holdout"></select></div>
+          <div class="field"><label for="epochs" data-i18n>Epox</label><select class="input" id="epochs"><option>20</option><option selected>35</option><option>60</option></select></div>
+          <button class="btn primary lg" id="trainBtn" data-i18n>Öyrət</button>
         </div>
       </div>
       <div class="kpis" id="kpis"></div>
-      <div style="display:grid;gap:8px"><div class="progress" id="trainProg"><i></i></div><p class="log" id="trainLog">Öyrətmə bu kompüterdə, brauzerin içində gedir; 300 nümunə üçün təxminən 20-60 saniyə.</p></div>
+      <div style="display:grid;gap:8px"><div class="progress" id="trainProg"><i></i></div><p class="log" id="trainLog"></p></div>
       <div class="grid">
-        <div class="card span-7"><div class="card-head"><h2>Dəqiqlik, hər epoxda</h2><div id="curveLegend"></div></div><div class="card-body"><div id="curve"><div class="empty">Model öyrədiləndə əyri burada çəkiləcək.</div></div></div></div>
-        <div class="card span-5"><div class="card-head"><h2 id="perTitle">Hər işarə üzrə dəqiqlik</h2></div><div class="card-body"><div id="perSign"><div class="empty">Hələ yoxlama nəticəsi yoxdur.</div></div></div></div>
+        <div class="card span-7"><div class="card-head"><h2 data-i18n>Dəqiqlik</h2><div id="curveLegend"></div></div><div class="card-body"><div id="curve"></div></div></div>
+        <div class="card span-5"><div class="card-head"><h2 id="perTitle">Hər işarə üzrə dəqiqlik</h2></div><div class="card-body"><div id="perSign"></div></div></div>
       </div>
     </section>
 
     <!-- ============ WORDS & SETTINGS ============ -->
     <section class="view" data-view="words" hidden>
       <div class="title-row">
-        <div><h1>Lüğət və ayarlar</h1><p>Hər işarəni yazmadan əvvəl Azərbaycan işarə dilini bilən biri ilə yoxlayın: işarələri özümüz uydurmuruq.</p></div>
-        <div class="actions"><button class="btn" id="resetVocabBtn">Standart lüğəti qaytar</button></div>
+        <div><h1 data-i18n>Lüğət və ayarlar</h1></div>
+        <div class="actions"><button class="btn" id="resetVocabBtn" data-i18n>Standart lüğəti qaytar</button></div>
       </div>
       <div class="grid">
         <div class="card span-7">
-          <div class="card-head"><h2>İşarələr</h2></div>
+          <div class="card-head"><h2 data-i18n>İşarələr</h2></div>
           <div class="card-body" style="padding:8px 4px">
-            <table><thead><tr><th>Söz</th><th>Dilmanc nə deyir</th><th class="r">Nümunə</th><th class="r"></th></tr></thead><tbody id="vocabRows"></tbody></table>
+            <table><thead><tr><th data-i18n>Söz</th><th data-i18n>Səsləndirilən mətn</th><th class="r" data-i18n>Nümunə</th><th class="r"></th></tr></thead><tbody id="vocabRows"></tbody></table>
             <form class="inline" id="addSign" style="padding:12px 12px 4px">
-              <div class="field" style="flex:1"><label for="newWord">Yeni söz</label><input class="input" id="newWord" placeholder="məs. su" required></div>
-              <div class="field" style="flex:2"><label for="newSay">Dilmanc nə desin</label><input class="input" id="newSay" placeholder="məs. Su istəyirəm."></div>
-              <button class="btn" type="submit">Əlavə et</button>
+              <div class="field" style="flex:1"><label for="newWord" data-i18n>Yeni söz</label><input class="input" id="newWord" placeholder="su" required></div>
+              <div class="field" style="flex:2"><label for="newSay" data-i18n>Səsləndirilən mətn</label><input class="input" id="newSay" placeholder="Su istəyirəm."></div>
+              <button class="btn" type="submit" data-i18n>Əlavə et</button>
             </form>
           </div>
         </div>
         <div class="card span-5">
-          <div class="card-head"><h2>Birləşmələr</h2></div>
+          <div class="card-head"><h2 data-i18n>Birləşmələr</h2></div>
           <div class="card-body" style="padding:8px 4px">
-            <table><thead><tr><th>Ardıcıllıq</th><th>Cümlə</th><th class="r"></th></tr></thead><tbody id="ruleRows"></tbody></table>
+            <table><thead><tr><th data-i18n>Ardıcıllıq</th><th data-i18n>Cümlə</th><th class="r"></th></tr></thead><tbody id="ruleRows"></tbody></table>
             <form class="inline" id="addRule" style="padding:12px 12px 4px">
-              <div class="field" style="flex:1"><label for="ruleSeq">Ardıcıllıq</label><input class="input" id="ruleSeq" placeholder="baş + ağrı" required></div>
-              <div class="field" style="flex:1"><label for="ruleSay">Cümlə</label><input class="input" id="ruleSay" placeholder="Başım ağrıyır." required></div>
-              <button class="btn" type="submit">Əlavə et</button>
+              <div class="field" style="flex:1"><label for="ruleSeq" data-i18n>Ardıcıllıq</label><input class="input" id="ruleSeq" placeholder="baş + ağrı" required></div>
+              <div class="field" style="flex:1"><label for="ruleSay" data-i18n>Cümlə</label><input class="input" id="ruleSay" placeholder="Başım ağrıyır." required></div>
+              <button class="btn" type="submit" data-i18n>Əlavə et</button>
             </form>
           </div>
         </div>
         <div class="card span-6">
-          <div class="card-head"><h2>Səs və tanıma</h2></div>
+          <div class="card-head"><h2 data-i18n>Səs və tanıma</h2></div>
           <div class="card-body" style="display:grid;gap:16px">
             <div class="inline">
-              <div class="field" style="flex:1"><label for="voiceSel">Səs</label><select class="input" id="voiceSel"></select><span class="hint">Ən yaxşı Azərbaycan səsi: Microsoft Edge-də “Banu” və ya “Babek”.</span></div>
-              <button class="btn" id="voiceTest" type="button">Sına</button>
+              <div class="field" style="flex:1"><label for="voiceSel" data-i18n>Səs</label><select class="input" id="voiceSel"></select></div>
+              <button class="btn" id="voiceTest" type="button" data-i18n>Sına</button>
             </div>
-            <div class="field"><label for="threshold">Əminlik həddi: <span class="num" id="thresholdVal">80%</span></label><input type="range" id="threshold" min="50" max="98" value="80"><span class="hint">Yüksək hədd daha az səhv, amma daha yavaş tanıma deməkdir.</span></div>
+            <div class="field"><label for="threshold"><span data-i18n>Əminlik həddi</span>: <span class="num" id="thresholdVal">80%</span></label><input type="range" id="threshold" min="50" max="98" value="80"></div>
           </div>
         </div>
         <div class="card span-6">
-          <div class="card-head"><h2>Məlumat</h2></div>
+          <div class="card-head"><h2 data-i18n>Məlumat</h2></div>
           <div class="card-body" style="display:grid;gap:12px">
-            <p class="muted">Komandada hər kəs öz kompüterində yaza bilər: dataseti yükləyin, sonra bir kompüterdə idxal edib birləşdirin.</p>
             <div class="actions">
-              <button class="btn" id="exportBtn">Dataseti yüklə</button>
-              <label class="btn" for="importInput">Dataset idxal et</label><input type="file" id="importInput" accept="application/json,.json" hidden>
-              <button class="btn" id="modelDlBtn">Modeli yüklə</button>
-              <button class="btn danger" id="wipeBtn">Hamısını sil</button>
+              <button class="btn" id="exportBtn" data-i18n>Dataseti yüklə</button>
+              <label class="btn" for="importInput" data-i18n>Dataset idxal et</label><input type="file" id="importInput" accept="application/json,.json" hidden>
+              <button class="btn" id="modelDlBtn" data-i18n>Modeli yüklə</button>
+              <button class="btn danger" id="wipeBtn" data-i18n>Hamısını sil</button>
             </div>
           </div>
         </div>
