@@ -4,30 +4,39 @@
 
 İlk ssenari: **poliklinikanın qeydiyyat masası.** 8 işarə, bir neçə hazır cümlə, iki tərəfli söhbət.
 
-Hər şey brauzerin içində işləyir: nümunə yazmaq, modeli öyrətmək və tanımaq. Server yoxdur, API açarı yoxdur, video heç yerə göndərilmir.
+Nümunə yazmaq, modeli öyrətmək və işarələri tanımaq brauzerdə işləyir. Kamera videosu serverə göndərilmir. Azərbaycan dilində səsləndirmə Azure Neural TTS ilə edilir: yeni cümlənin mətni Azure-a göndərilir, yaranan audio lokal saxlanır. API açarı brauzerə verilmir.
 
 ## İşə salmaq
 
-Kamera yalnız `localhost` və ya `https` üzərində açılır, ona görə faylı birbaşa açmaq olmaz:
+Python 3.10+ tələb olunur; əlavə Python paketi lazım deyil. ZIP-i çıxarın, `dilmanc` qovluğunda terminal açın:
 
 ```sh
-npx serve .            # və ya
-python3 -m http.server 8000
+python3 server.py --configure
 ```
 
-Sonra `http://localhost:3000` (və ya `:8000`) ünvanını açın.
+Azure Speech resursunun regionunu və KEY-ni terminalda daxil edin. Açar ekranda görünmür və lokal `.env` faylında saxlanır. Sonra `http://localhost:8000` açın. Növbəti açılışlar üçün:
 
-- **Microsoft Edge** istifadə edin: Azərbaycan dilində təbii səslər (Banu, Babek) yalnız Edge-də var. Chrome türk səsinə keçir.
-- Danışığı mətnə çevirmək (cavab paneli) Chrome və Edge-də işləyir.
-- **Səhnə üçün oflayn rejim:** `sh scripts/vendor.sh` bütün modelləri `vendor/` qovluğuna endirir (təxminən 35 MB). Bundan sonra zal Wi-Fi-ı lazım deyil.
+```sh
+python3 server.py
+```
+
+`Lüğət və ayarlar → Sına` ilə bağlantını və səsi yoxlayın. Banu (qadın) və Babek (kişi) arasında seçim var. `Demo səslərini hazırla` seçilən səs üçün əsas cümlələri əvvəlcədən yaradır. Əvvəl saxlanmış eyni cümlələr internet kəsiləndə işləyir; yeni mətn üçün internet lazımdır.
+
+- Chrome və ya Edge istifadə edin. Azure səsi brauzerin sistem səslərindən asılı deyil; türk səsinə keçid yoxdur.
+- Danışığı mətnə çevirmək brauzerin mikrofon xidmətindən istifadə edir və internet tələb edə bilər.
+- `vendor/` içində kamera və təlim runtime faylları artıq var. Yeniləmək üçün `sh scripts/vendor.sh` istifadə olunur.
+- Adi `python3 -m http.server` və `npx serve` yalnız statik hissəni açır; Azure üçün `server.py` lazımdır.
+- Əvvəlki datasetin görünməsi üçün brauzer profilini və ünvanı/portu eyni saxlayın. `localhost` ilə `127.0.0.1` ayrı yaddaş sayılır.
+
+Tam qurulma təlimatı: **AZURE_QURULMA_AZ.md**.
 
 ## Necə işləyir
 
 1. **MediaPipe** hər kadrda iki əlin 21 nöqtəsini və çiyinləri tapır.
 2. Hər kadr 134 rəqəmə çevrilir: əlin forması (biləyə nisbətən) və əlin harada olduğu (çiyinlərə nisbətən). Ona görə model kameranın məsafəsindən və insanın boyundan çox asılı deyil.
-3. 30 kadr (təxminən 1 saniyə) bir nümunədir. Kiçik **Conv1D** şəbəkə (TensorFlow.js) bu ardıcıllığı işarəyə çevirir.
+3. 1 saniyəlik zaman pəncərəsi 30 kadra uyğunlaşdırılır; kamera FPS-i dəyişəndə nümunənin müddəti dəyişmir. Kiçik **Conv1D** şəbəkə (TensorFlow.js) bu ardıcıllığı işarəyə çevirir.
 4. Tanınan işarələr qaydalarla cümləyə çevrilir: `baş + ağrı` → "Başım ağrıyır." Qaydaları "Lüğət və ayarlar" bölməsində dəyişmək olur.
-5. 1,8 saniyə sükutdan sonra cümlə səsləndirilir (və ya `Enter`).
+5. Son qəbul olunan işarədən 1,8 saniyə sonra cümlə səsləndirilir (və ya `Enter`).
 
 ## Məlumat toplama protokolu
 
@@ -45,7 +54,7 @@ Münsiflərin ilk sualı: "Bu, sizin öz əllərinizdə işləyir, bəs başqas�
 1. **Problem (30 san).** Kar insan həkimə gedir. Tərcüməçi yoxdur, yazı ilə danışmaq yavaşdır və hamı oxuya bilmir.
 2. **Canlı (90 san).** Səhnə rejimi (`Səhnə rejimi`, çıxış `Esc`). İmzalayan: *salam* → *baş* → *ağrı* → *dərman*. Dilmanc deyir: "Salam! Başım ağrıyır, dərman lazımdır." Komanda üzvü həkim kimi cavab verir, sözlər ekranda görünür.
 3. **Sübut (30 san).** Model bölməsi: görülməmiş imzalayan üzərində dəqiqlik, hər işarə üzrə nəticə.
-4. **Səhnədə yeni işarə (30 san).** Münsiflərdən biri bir söz seçir, 10 nümunə yazılır, model 30 saniyədə yenidən öyrənir və tanıyır.
+4. **Səhnədə yeni işarə (30 san).** Münsiflərdən biri bir söz seçir, 10 nümunə yazılır, model yenidən öyrədilir və tanıma sınanır. Müddəti əvvəlcə öz kompüterinizdə ölçün.
 
 Ehtiyat plan: canlı demo alınmasa, eyni ssenarinin əvvəlcədən çəkilmiş videosu.
 
@@ -79,4 +88,36 @@ Test üçün kamerasız açmaq: `http://localhost:8000/?nocam`.
 ## Məhdudiyyətlər
 
 - Bu, kiçik lüğətli prototipdir, tam işarə dili tərcüməçisi deyil. Qrammatika, mimika və barmaq əlifbası hələ yoxdur.
-- Azərbaycanda karların çoxu türk işarə dilinə yaxın variantdan istifadə edir. Lüğəti real istifadəçilərlə birlikdə qurun.
+- ASL və ya türk işarə dili dataseti avtomatik Azərbaycan işarə dilinin dataseti sayılmır. Lüğəti yerli işarə dilini bilən real istifadəçilərlə birlikdə qurun.
+
+
+## Final hazırlığı üçün yenilənmiş paket
+
+Bu paketdə hazır Azərbaycan işarə dili klassifikatoru və sizin brauzerdəki nümunələr YOXDUR. `vendor/models/` içindəki modellər əl və bədən nöqtələrini tapır; sözləri sizin datasetinizdən öyrənən model ayrıdır.
+
+1. Əvvəl köhnə tətbiqi işlətməyə davam etdiyiniz eyni brauzer, eyni profil və eyni ünvan/portda `Dataseti yüklə` ilə nümunələri ehtiyatlayın. Köhnə düymə `Modeli yüklə` TF çəkilərini çıxarır, tam daşınan paket deyil.
+2. Bu faylları açın. Eyni origin istifadə edilirsə mövcud IndexedDB nümunələri və model saxlanır. Yeni origin istifadə edilirsə dataseti idxal edin və yenidən öyrədin. Əvvəlki nümunələr aşağı FPS ilə yazılıbsa, yeni sabit müddətli nümunələr toplayıb yenidən sınaqdan keçirin.
+3. Modeli öyrətdikdən sonra `Lüğət və ayarlar → Hazır modeli ixrac et` seçin. Tək JSON modelin çəkilərini, sinif sırasını, lüğəti və yoxlama nəticəsini saxlayır.
+4. Ehtiyat kompüterdə `Hazır model idxal et` seçin. Yenidən öyrətmək lazım deyil. Dataseti ayrıca idxal etmək yalnız gələcəkdə öyrətməyi davam etdirmək üçün lazımdır.
+5. Şəbəkəni söndürün, səhifəni yeniləyin və kameranı yoxlayın. Lokal əl/bədən modelləri artıq `vendor/` içindədir. Azure-da əvvəlcədən hazırlanmış eyni cümlələrin səslənməsini də sınayın. Yeni cümlə və mikrofon üçün internet lazım ola bilər; yazılı cavab ehtiyatdır.
+
+### Dəyişikliklər
+
+- 1 saniyəlik zamana görə 30 kadra uyğunlaşdırma; uzun kamera donmalarında nümunə qəbul edilmir.
+- Qəbuldan əvvəl sabit qalma, ilk iki sinif arasındakı fərq və təkrar söz üçün neytral fasilə.
+- Hazır modelin tam ixracı, idxalı və lüğətlə uyğunluq yoxlaması.
+- Datasetdə ölçü, rəqəm, sinif və təkrarlanan ID yoxlaması; cümlə qaydaları da idxal edilir.
+- Görülməmiş imzalayan bölgüsündə bütün siniflərin hər iki tərəfdə olması yoxlanır.
+- Qarışma matrisi və siniflər üzrə orta recall; yoxlama modeli ilə bütün data ilə öyrədilmiş canlı model açıq fərqləndirilir.
+- Mikrofon üçün yazılı və hazır cavablar; məxfilik mətni dəqiqləşdirilib.
+- Tensor sızması və bəzi xəta/dayandırma halları düzəldilib.
+
+### Yoxlama
+
+Python server sınaqları: `python3 -m unittest discover -s tests -p 'test_*.py' -v`. Azure cavabları sınaqda əvəz edilir; real xidmət yoxlanmır.
+
+Node.js 20+ olduqda `npm test` (əlavə npm paketi quraşdırılmır). Testlər sintetik texniki nümunələrdən istifadə edir; keçməsi real işarə dəqiqliyi demək deyil.
+
+İnterfeys axınının simulyasiya testi üçün `npm install`, sonra `npm run test:ui`. Bu test JSDOM, saxta IndexedDB və sintetik data ilə işləyir; real kamera, vizual yerləşmə, WebGL və səs yoxlanmır.
+
+Ətraflı prioritetlər, data toplama, ölçmə və təqdimat planı: `FINAL_PLANI_AZ.md`.
