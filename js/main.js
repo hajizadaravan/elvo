@@ -32,6 +32,7 @@ function loadScript(src) {
 
 async function boot() {
   applyTranslations();
+  $('#crumb').textContent = t(NAMES[S.view]);
   buildCam();
   bindNav(); bindLive(); bindRecord(); bindModel(); bindWords();
   speech.onVoices(renderVoices);
