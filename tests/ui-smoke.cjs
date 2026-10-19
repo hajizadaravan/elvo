@@ -37,7 +37,7 @@ async function wait(fn,timeout=30000){const until=Date.now()+timeout;while(!fn()
  const beforeWarm=speechCalls.length;await $('#speechPrepare').onclick();assert.ok(speechCalls.length>beforeWarm);
  assert.ok(speechCalls.slice(beforeWarm).every(c=>c.voice==='az-AZ-BabekNeural'));
  assert.equal($('#speechPrepare').disabled,false);
- failSpeech=true;await $('#voiceTest').onclick();assert.match($('#azureStatus').textContent,/Azure açarı/);failSpeech=false;
+ failSpeech=true;const failedBefore=speechCalls.length;await $('#voiceTest').onclick();assert.equal(speechCalls.length,failedBefore);await $('#speechPrepare').onclick();assert.match($('#azureStatus').textContent,/Azure açarı/);failSpeech=false;
  const v=await import(pathToFileURL(root+'/js/vocab.js'));
  const fixture={format:'dilmanc-dataset',version:1,vocab:{signs:v.DEFAULT_SIGNS,rules:v.DEFAULT_RULES},samples:['a','b'].flatMap((signer,si)=>['salam','_fon'].flatMap((sign,ci)=>Array.from({length:5},(_,i)=>({id:`qa-${si}-${ci}-${i}`,sign,signer,data:Array(4020).fill(ci*.1),at:new Date().toISOString()}))))};
  const input=$('#importInput');Object.defineProperty(input,'files',{value:[{text:async()=>JSON.stringify(fixture)}],configurable:true});await input.onchange({target:input});assert.equal(w.dilmanc.S.samples.length,20);

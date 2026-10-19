@@ -35,7 +35,8 @@ async function boot() {
   buildCam();
   bindNav(); bindLive(); bindRecord(); bindModel(); bindWords();
   speech.onVoices(renderVoices);
-  refreshSpeechStatus();
+  for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, speech.unlockAudio, { capture: true });
+  refreshSpeechStatus().then(warmSpeech);
   S.samples = await allSamples();
   renderAll();
   try { await loadScript('vendor/tf.min.js'); }
@@ -216,6 +217,8 @@ function commit(id, ts) {
   L.last = id; L.lastAt = ts;
   L.pending.push(id);
   renderSentence();
+  // Synthesize during the pause, so the phrase is ready when it is spoken.
+  speech.prefetch(compose(L.pending, S.vocab));
   clearTimeout(L.timer);
   if ($('#autoSpeak').checked) L.timer = setTimeout(speakPending, 1800);
 }
@@ -527,11 +530,17 @@ function showSpeechProblem(key, params = {}) {
   if (key) ui(el, key, params); else { el.textContent = ''; delete el.dataset.i18n; delete el.dataset.i18nParams; }
 }
 
+// Cache vocabulary phrases on the local server once Azure is available.
+function warmSpeech(s) {
+  if (s?.reachable && s.configured) speech.warm([...S.vocab.signs.map((x) => x.say), ...S.vocab.rules.map((r) => r.say)]);
+}
+
 async function refreshSpeechStatus() {
   const s = await speech.status();
   if (!s.reachable) showSpeechProblem('Səs serveri açılmayıb. Layihəni python3 server.py ilə başladın.');
   else if (!s.configured && !s.cached) showSpeechProblem('Azure açarı və regionu daxil edilməyib. Terminalda python3 server.py --configure başladın.');
   else showSpeechProblem(null);
+  return s;
 }
 
 function bindWords() {
@@ -551,7 +560,7 @@ function bindWords() {
     saveVocab(S.vocab); e.target.reset(); renderAll();
   };
   $('#resetVocabBtn').onclick = () => { if (confirm(t('Standart lüğət qaytarılsın? Nümunələr saxlanılır.'))) { S.vocab = resetVocab(); renderAll(); } };
-  $('#voiceSel').onchange = (e) => { speech.stop(); speech.setVoice(e.target.value); renderVoices(); refreshSpeechStatus(); };
+  $('#voiceSel').onchange = (e) => { speech.stop(); speech.setVoice(e.target.value); renderVoices(); refreshSpeechStatus().then(warmSpeech); };
   $('#voiceTest').onclick = () => playSpeech('Salam! Başım ağrıyır, həkim lazımdır.');
   $('#speechPrepare').onclick = async () => {
     const button = $('#speechPrepare'), voice = speech.currentVoice().name;

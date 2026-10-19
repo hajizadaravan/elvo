@@ -9,7 +9,10 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from http.server import ThreadingHTTPServer
 
-from server import AzureSpeech, SpeechError, make_handler, credentials
+import http.client
+
+import server
+from server import AzureSpeech, KeepAliveOpener, SpeechError, make_handler, credentials
 
 
 class AudioResponse(io.BytesIO):
@@ -88,6 +91,25 @@ class SpeechTests(unittest.TestCase):
             t.join()
         self.assertEqual(len(self.requests), 1)
 
+    def test_cached_phrase_does_not_wait_for_other_synthesis(self):
+        started, release = threading.Event(), threading.Event()
+        def slow(request, timeout):
+            if b"Yavas" in request.data:
+                started.set()
+                release.wait(5)
+            self.requests.append(request)
+            return AudioResponse(b"ID3-test-audio")
+        service = self.service(opener=slow)
+        service.synthesize("Salam!", "az-AZ-BanuNeural")
+        worker = threading.Thread(target=lambda: service.synthesize("Yavas cumle.", "az-AZ-BanuNeural"))
+        worker.start()
+        self.assertTrue(started.wait(5))
+        done = threading.Event()
+        threading.Thread(target=lambda: (service.synthesize("Salam!", "az-AZ-BanuNeural"), done.set())).start()
+        self.assertTrue(done.wait(1))
+        release.set()
+        worker.join()
+
     def test_env_file_and_environment_override(self):
         (self.root / ".env").write_text("AZURE_SPEECH_KEY=file-key\nAZURE_SPEECH_REGION=westeurope\n", encoding="utf-8")
         with patch.dict("os.environ", {"AZURE_SPEECH_KEY": "env-key", "AZURE_SPEECH_REGION": "eastus"}):
@@ -129,6 +151,88 @@ class SpeechTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join()
+
+
+class FakeResponse:
+    def __init__(self, status=200, body=b"ID3-audio", will_close=False):
+        self.status, self.reason, self.body, self.will_close = status, "OK", body, will_close
+        self.headers = {"Content-Type": "audio/mpeg"}
+        self.done = False
+
+    def read(self, amount=None):
+        self.done = True
+        return self.body
+
+    def isclosed(self):
+        return self.done
+
+
+class FakeConnection:
+    made = []
+    script = []
+
+    def __init__(self, host, timeout):
+        self.host, self.timeout, self.sock, self.closed, self.sent = host, timeout, None, False, []
+        FakeConnection.made.append(self)
+
+    def request(self, method, path, body=None, headers=None):
+        self.sent.append((method, path, headers))
+        step = FakeConnection.script.pop(0)
+        if isinstance(step, BaseException):
+            raise step
+        self.response = step
+
+    def getresponse(self):
+        return self.response
+
+    def close(self):
+        self.closed = True
+
+
+class KeepAliveTests(unittest.TestCase):
+    def setUp(self):
+        FakeConnection.made, FakeConnection.script = [], []
+        patcher = patch.object(server.http.client, "HTTPSConnection", FakeConnection)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def request(self):
+        return Request("https://westeurope.tts.speech.microsoft.com/cognitiveservices/v1", data=b"<speak/>",
+                       method="POST", headers={"Ocp-Apim-Subscription-Key": "test-key"})
+
+    def test_connection_is_reused_between_phrases(self):
+        opener = KeepAliveOpener()
+        FakeConnection.script = [FakeResponse(), FakeResponse()]
+        self.assertEqual(opener(self.request(), 20).read(), b"ID3-audio")
+        self.assertEqual(opener(self.request(), 20).headers.get("Content-Type"), "audio/mpeg")
+        self.assertEqual(len(FakeConnection.made), 1)
+        method, path, headers = FakeConnection.made[0].sent[0]
+        self.assertEqual((method, path), ("POST", "/cognitiveservices/v1"))
+        self.assertEqual(headers["Ocp-apim-subscription-key"], "test-key")
+
+    def test_stale_connection_retries_once_on_a_new_connection(self):
+        opener = KeepAliveOpener()
+        FakeConnection.script = [FakeResponse(), http.client.RemoteDisconnected("idle"), FakeResponse()]
+        opener(self.request(), 20)
+        self.assertEqual(opener(self.request(), 20).read(), b"ID3-audio")
+        self.assertEqual(len(FakeConnection.made), 2)
+        self.assertTrue(FakeConnection.made[0].closed)
+
+    def test_fresh_connection_failure_is_not_retried(self):
+        opener = KeepAliveOpener()
+        FakeConnection.script = [ConnectionResetError("down")]
+        with self.assertRaises(ConnectionResetError):
+            opener(self.request(), 20)
+        self.assertEqual(len(FakeConnection.made), 1)
+
+    def test_provider_errors_keep_existing_safe_mapping(self):
+        FakeConnection.script = [FakeResponse(status=401, body=b"secret-provider-body")]
+        service = AzureSpeech(Path(tempfile.mkdtemp()), key="test-key", region="westeurope", opener=KeepAliveOpener())
+        with self.assertRaises(SpeechError) as e:
+            service.synthesize("Salam!", "az-AZ-BanuNeural")
+        self.assertEqual(e.exception.status, 502)
+        self.assertNotIn("secret-provider-body", str(e.exception))
+        self.assertEqual(len(FakeConnection.made[0].sent), 1)
 
 
 if __name__ == "__main__":

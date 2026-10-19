@@ -4,7 +4,11 @@ const AZURE_VOICES = [
   { name: 'az-AZ-BanuNeural', label: 'Banu · qadın', lang: 'az-AZ' },
   { name: 'az-AZ-BabekNeural', label: 'Babek · kişi', lang: 'az-AZ' },
 ];
-let activeController = null, audio = null, audioURL = null, playbackDone = null;
+// One reused player: browsers that unlock audio per element keep it unlocked after the first gesture.
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+const MEMORY_LIMIT = 24;
+const memory = new Map();
+let active = null, player = null, audioURL = null, playbackDone = null, unlocked = false;
 
 export function voices() {
   return AZURE_VOICES.map((v) => ({ ...v }));
@@ -52,9 +56,50 @@ export async function prepare(text, { signal, voice = currentVoice().name } = {}
   return response.blob();
 }
 
+function getPlayer() {
+  player ??= new Audio();
+  return player;
+}
+
+// Call from a user gesture so later automatic playback is allowed.
+export function unlockAudio() {
+  if (unlocked || audioURL) return;
+  unlocked = true;
+  const p = getPlayer();
+  p.src = SILENT;
+  p.play().then(() => { if (p.src === SILENT) p.pause(); }).catch((e) => { if (e?.name === 'NotAllowedError') unlocked = false; });
+}
+
+// Fetch once per voice and text; repeated and prefetched phrases play without another request.
+function audioFor(text, voice = currentVoice().name) {
+  const key = `${voice}\n${text}`;
+  let pending = memory.get(key);
+  if (pending) { memory.delete(key); memory.set(key, pending); return pending; }
+  pending = prepare(text, { voice });
+  memory.set(key, pending);
+  pending.catch(() => { if (memory.get(key) === pending) memory.delete(key); });
+  while (memory.size > MEMORY_LIMIT) memory.delete(memory.keys().next().value);
+  return pending;
+}
+
+export function prefetch(text) {
+  if (text?.trim()) audioFor(text.trim()).catch(() => {});
+}
+
+// Fill the server cache in the background without holding audio in memory.
+// A newer warm-up, such as after a voice change, stops the previous one.
+let warmRun = 0;
+export async function warm(texts, voice = currentVoice().name) {
+  const run = ++warmRun;
+  for (const text of new Set(texts.map((x) => x?.trim()).filter(Boolean))) {
+    if (run !== warmRun || voice !== currentVoice().name) return;
+    try { await prepare(text, { voice }); } catch { return; }
+  }
+}
+
 export function stop() {
-  activeController?.abort(); activeController = null;
-  if (audio) { audio.onended = null; audio.onerror = null; audio.pause(); audio = null; }
+  active = null;
+  if (player) { player.onended = null; player.onerror = null; player.pause(); }
   if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   playbackDone?.(); playbackDone = null;
 }
@@ -62,23 +107,25 @@ export function stop() {
 export async function speak(text) {
   if (!text?.trim()) return false;
   stop();
-  const controller = new AbortController(); activeController = controller;
+  const token = {}; active = token;
   try {
-    const blob = await prepare(text, { signal: controller.signal });
-    if (activeController !== controller) return false;
-    const url = URL.createObjectURL(blob), player = new Audio(url);
-    audioURL = url; audio = player;
+    const blob = await audioFor(text.trim());
+    if (active !== token) return false;
+    const p = getPlayer(), url = URL.createObjectURL(blob);
+    audioURL = url; p.src = url;
     await new Promise((resolve, reject) => {
       playbackDone = resolve;
-      player.onended = resolve;
-      player.onerror = () => reject(new Error('Audio səslənmədi. Səsləndir düyməsini yenidən basın.'));
-      player.play().catch(() => reject(new Error('Brauzer səsi blokladı. Səsləndir və ya Sına düyməsini basın.')));
+      p.onended = resolve;
+      p.onerror = () => reject(new Error('Audio səslənmədi. Səsləndir düyməsini yenidən basın.'));
+      p.play().catch((e) => reject(new Error(e?.name === 'NotAllowedError'
+        ? 'Brauzer səsi blokladı. Səsləndir və ya Sına düyməsini basın.'
+        : 'Audio səslənmədi. Səsləndir düyməsini yenidən basın.')));
     });
-    return activeController === controller;
+    return active === token;
   } catch (e) {
-    if (e.name === 'AbortError') return false;
+    if (active !== token) return false;
     throw e;
-  } finally { if (activeController === controller) stop(); }
+  } finally { if (active === token) stop(); }
 }
 
 export function onVoices(fn) { fn(); }

@@ -60,7 +60,7 @@ For an honest demo result, report the number of test samples, class coverage, an
 4. Training augmentation adds temporal crops, position and scale variation, shape jitter, and random mirroring. Mirroring swaps hand slots and flips horizontal coordinates; it is a robustness technique, not proof of left-handed signer accuracy.
 5. Predictions require a stable winner, confidence threshold, and margin over the runner-up. Repeating the same sign requires a neutral interval.
 6. Predefined rules compose recognized tokens, for example `baş + ağrı` becomes `Başım ağrıyır.`
-7. The phrase is spoken after a pause or when the user presses Enter.
+7. Each new phrase is synthesized during the pause, so it is ready when it is spoken after the pause or when the user presses Enter.
 
 Capture spans one second across supported camera frame rates. Training time depends on the device and dataset. Held-out signer evaluation requires every class in both partitions; the final live model is then trained on all samples.
 
@@ -82,7 +82,7 @@ Google Fonts still requires a network connection; system fonts are used as a fal
 4. In **Vocabulary & settings**, choose Banu (`az-AZ-BanuNeural`) or Babek (`az-AZ-BabekNeural`) and press **Test**. Only Test confirms that the key works.
 5. Before a demo, press **Prepare demo voices** while online. Vocabulary phrases, composition rules, and the standard demo phrases are cached for the selected voice. Azure usage may be billed according to your subscription.
 
-Cached audio is stored in `.dilmanc-cache/tts/` and is reused only for the same text and voice. Dataset and model exports do not include audio; copy `.dilmanc-cache/` separately to a backup computer. Changing the port changes browser storage, so export the dataset before switching servers. If port 8000 is already in use, stop the old server first.
+When Azure is configured, vocabulary and combination phrases for the selected voice are cached in the background after startup. Cached audio is stored in `.dilmanc-cache/tts/` and is reused only for the same text and voice. Dataset and model exports do not include audio; copy `.dilmanc-cache/` separately to a backup computer. Changing the port changes browser storage, so export the dataset before switching servers. If port 8000 is already in use, stop the old server first.
 
 | Message | Action |
 | --- | --- |
