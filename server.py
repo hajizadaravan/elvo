@@ -21,6 +21,10 @@ ROOT = Path(__file__).resolve().parent
 VOICES = {"az-AZ-BanuNeural": "Banu · qadın", "az-AZ-BabekNeural": "Babek · kişi"}
 MAX_TEXT = 1200
 MAX_AUDIO = 8 * 1024 * 1024
+# Slightly faster speech and short pauses between sentences. Changing these changes the cache key.
+SPEECH_RATE = "+10%"
+PAUSES = (("Leading-exact", "50ms"), ("Tailing-exact", "50ms"), ("Sentenceboundary-exact", "150ms"))
+STYLE = f"azure-mp3-v2-rate{SPEECH_RATE}-" + "-".join(v for _, v in PAUSES)
 STALE = (http.client.RemoteDisconnected, http.client.CannotSendRequest, http.client.BadStatusLine, BrokenPipeError, ConnectionResetError)
 
 
@@ -68,6 +72,13 @@ def configure(root=ROOT):
             pass
         raise
     print("Azure ayarları saxlandı. Açar brauzerə göndərilmir.")
+
+
+def ssml(voice, text, pauses=True):
+    silence = "".join(f'<mstts:silence type="{kind}" value="{value}"/>' for kind, value in PAUSES) if pauses else ""
+    return (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
+            f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="az-AZ">'
+            f'<voice name="{voice}">{silence}<prosody rate="{SPEECH_RATE}">{escape(text)}</prosody></voice></speak>')
 
 
 class Fetched(io.BytesIO):
@@ -167,6 +178,15 @@ class AzureSpeech:
                 "voices": [{"name": k, "label": v} for k, v in VOICES.items()],
                 "cached": sum(1 for _ in self.cache.glob("*.mp3")) if self.cache.exists() else 0}
 
+    def fetch(self, body):
+        request = Request(self.endpoint, data=body.encode("utf-8"), method="POST", headers={
+            "Ocp-Apim-Subscription-Key": self.key,
+            "Content-Type": "application/ssml+xml; charset=utf-8",
+            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+            "User-Agent": "Dilmanc/0.3"})
+        with self.opener(request, timeout=20) as response:
+            return response.read(MAX_AUDIO + 1), response.headers.get("Content-Type", "").lower()
+
     def synthesize(self, text, voice):
         if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT:
             raise SpeechError(400, "Mətn 1-{max} simvol olmalıdır.", params={"max": MAX_TEXT})
@@ -175,7 +195,7 @@ class AzureSpeech:
         text = text.strip()
         if any(ord(c) < 32 and c not in "\n\t\r" for c in text):
             raise SpeechError(400, "Mətndə uyğun olmayan simvol var.")
-        fingerprint = hashlib.sha256(json.dumps(["azure-mp3-v1-rate-5", voice, text], ensure_ascii=False).encode()).hexdigest()
+        fingerprint = hashlib.sha256(json.dumps([STYLE, voice, text], ensure_ascii=False).encode()).hexdigest()
         target = self.cache / f"{fingerprint}.mp3"
         if target.is_file() and target.stat().st_size:
             return target.read_bytes(), True
@@ -185,18 +205,14 @@ class AzureSpeech:
                 return target.read_bytes(), True
             if not self.configured:
                 raise SpeechError(503, "Azure qurulmayıb. Terminalda python3 server.py --configure başladın.")
-            ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="az-AZ">'
-                    f'<voice name="{voice}"><prosody rate="-5%">{escape(text)}</prosody></voice></speak>')
-            request = Request(self.endpoint,
-                              data=ssml.encode("utf-8"), method="POST", headers={
-                                  "Ocp-Apim-Subscription-Key": self.key,
-                                  "Content-Type": "application/ssml+xml; charset=utf-8",
-                                  "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-                                  "User-Agent": "Dilmanc/0.3"})
             try:
-                with self.opener(request, timeout=20) as response:
-                    audio = response.read(MAX_AUDIO + 1)
-                    content_type = response.headers.get("Content-Type", "").lower()
+                try:
+                    audio, content_type = self.fetch(ssml(voice, text, pauses=True))
+                except HTTPError as e:
+                    # If the pause tags are rejected, keep speaking with the faster rate only.
+                    if e.code != 400:
+                        raise
+                    audio, content_type = self.fetch(ssml(voice, text, pauses=False))
             except HTTPError as e:
                 if e.code in (401, 403):
                     raise SpeechError(502, "Azure açarı, region və Speech resursuna giriş icazəsini yoxlayın.") from None
