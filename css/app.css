@@ -67,6 +67,8 @@ h1, h2, h3, p { margin: 0; }
 .matrix-scroll { overflow-x:auto; margin:16px 0; }
 .matrix-scroll td { text-align:center; }
 .correct-cell { background:var(--active); font-weight:600; }
+.reply-body { display: grid; gap: 14px; }
+.reply-input { flex: 1; min-width: 120px; }
 .wrong-cell { color:var(--negative); font-weight:600; }
 
 /* ---------- the frame: sidebar + top bar share one tinted ground, no rule between them ---------- */

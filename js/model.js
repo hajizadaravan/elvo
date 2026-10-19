@@ -44,7 +44,13 @@ export function signerSplit(samples, classes, signer) {
   const train = samples.filter((s) => s.signer !== signer), val = samples.filter((s) => s.signer === signer);
   const missingTrain = classes.filter((c) => !train.some((s) => s.sign === c));
   const missingVal = classes.filter((c) => !val.some((s) => s.sign === c));
-  if (missingTrain.length || missingVal.length) throw new Error(`Hər sinif həm öyrətmə, həm yoxlama dəstində olmalıdır. Öyrətmədə çatmır: ${missingTrain.join(', ') || 'yox'}; yoxlamada çatmır: ${missingVal.join(', ') || 'yox'}.`);
+  if (missingTrain.length || missingVal.length) {
+    const key = 'Hər sinif həm öyrətmə, həm yoxlama dəstində olmalıdır. Öyrətmədə çatmır: {train}; yoxlamada çatmır: {val}.';
+    const params = { train: missingTrain.join(', ') || '-', val: missingVal.join(', ') || '-' };
+    const error = new Error(key.replace(/\{(\w+)\}/g, (_, name) => params[name]));
+    Object.assign(error, { key, params });
+    throw error;
+  }
   return { train, val };
 }
 
@@ -115,6 +121,41 @@ function validateShape(model, meta) {
   if (!Array.isArray(meta?.classes) || meta.classes.length < 2 || new Set(meta.classes).size !== meta.classes.length || !meta.classes.includes(FON.id) || !meta.classes.every((c) => typeof c === 'string') || input?.length !== 3 || input[1] !== T || input[2] !== D || output?.length !== 2 || output[1] !== meta.classes.length) throw new Error('Modelin ölçüləri və ya sinifləri Dilmanc ilə uyğun deyil.');
 }
 
+const count = (v) => Number.isInteger(v) && v >= 0 && v <= 1e6;
+const ratio = (v) => v == null || (typeof v === 'number' && v >= 0 && v <= 1);
+
+// Imported bundles are untrusted: keep only typed evaluation fields that the UI renders.
+function cleanMeta(meta) {
+  const classes = [...meta.classes], n = classes.length;
+  const bad = () => { throw new Error('Model paketindəki nəticə məlumatı düzgün deyil.'); };
+  if (!ratio(meta.accuracy) || !ratio(meta.balancedAccuracy) || (meta.right != null && !count(meta.right)) || (meta.tested != null && !count(meta.tested)) || (meta.samples != null && !count(meta.samples))) bad();
+  const holdout = meta.holdout ?? 'random';
+  if (typeof holdout !== 'string' || holdout.length > 120) bad();
+  let per = null;
+  if (meta.per != null) {
+    if (typeof meta.per !== 'object' || Array.isArray(meta.per)) bad();
+    per = {};
+    for (const c of classes) {
+      const v = meta.per[c] ?? { right: 0, total: 0 };
+      if (!count(v.right) || !count(v.total) || v.right > v.total) bad();
+      per[c] = { right: v.right, total: v.total };
+    }
+  }
+  let confusion = null;
+  if (meta.confusion != null) {
+    if (!Array.isArray(meta.confusion) || meta.confusion.length !== n || !meta.confusion.every((row) => Array.isArray(row) && row.length === n && row.every(count))) bad();
+    confusion = meta.confusion.map((row) => [...row]);
+  }
+  let history = null;
+  if (meta.history != null) {
+    const { acc, valAcc } = meta.history;
+    if (!Array.isArray(acc) || acc.length > 500 || !acc.every((v) => typeof v === 'number' && v >= 0 && v <= 1) || (valAcc != null && (!Array.isArray(valAcc) || valAcc.length !== acc.length || !valAcc.every(ratio)))) bad();
+    history = { acc: [...acc], valAcc: valAcc ? [...valAcc] : [] };
+  }
+  const trainedAt = typeof meta.trainedAt === 'string' && !Number.isNaN(Date.parse(meta.trainedAt)) ? meta.trainedAt : null;
+  return { classes, trainedAt, accuracy: meta.accuracy ?? null, balancedAccuracy: meta.balancedAccuracy ?? null, right: meta.right ?? 0, tested: meta.tested ?? 0, per, confusion, holdout, history, samples: meta.samples ?? null, windowMs: 1000 };
+}
+
 // One portable file, including the class order and vocabulary (plain TF downloads omit them).
 export async function exportBundle(model, meta, vocab) {
   validateShape(model, meta); validateVocab(vocab);
@@ -137,9 +178,10 @@ export async function importBundle(text) {
   if (!Array.isArray(j.meta?.classes) || !j.meta.classes.every((c) => known.has(c))) throw new Error('Model sinifləri lüğətlə uyğun deyil.');
   const bytes = Uint8Array.from(atob(j.model.weightData), (c) => c.charCodeAt(0));
   const model = await tf.loadLayersModel(tf.io.fromMemory({ modelTopology: j.model.modelTopology, weightSpecs: j.model.weightSpecs, weightData: bytes.buffer }));
-  try { validateShape(model, j.meta); }
+  let meta;
+  try { validateShape(model, j.meta); meta = cleanMeta(j.meta); }
   catch (e) { model.dispose(); throw e; }
-  return { model, meta: j.meta, vocab: j.vocab };
+  return { model, meta, vocab: j.vocab };
 }
 
 export async function forgetModel() {

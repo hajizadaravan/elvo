@@ -17,7 +17,7 @@ python3 server.py --configure
 
 Python 3.10+ is required; the server uses the standard library only. Enter your Azure Speech region and key at the terminal prompt; the key is hidden and saved in a local ignored `.env` file. Open `http://localhost:8000` and allow camera access. On subsequent starts, run `python3 server.py`. Static servers such as `npx serve` do not provide the Azure speech endpoints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
 
-Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [the Azerbaijani Azure setup guide](AZURE_QURULMA_AZ.md).
+Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [Azure speech setup](#azure-speech-setup).
 
 ## Features
 
@@ -74,6 +74,27 @@ This downloads TensorFlow.js, MediaPipe, and landmark models into `vendor/`. The
 
 Google Fonts still requires a network connection; system fonts are used as a fallback. Speech recognition may use the browser provider's services and require internet. Azure speech requires internet for uncached text; the same text and voice can be replayed from `.dilmanc-cache/tts/` offline while the local server is running. Test the exact presentation setup before relying on offline operation.
 
+## Azure speech setup
+
+1. In the Azure portal, open or create a Speech resource. Copy `KEY 1` and the short region code, such as `westeurope`, from **Keys and Endpoint**. Do not use the endpoint URL as the region.
+2. Run `python3 server.py --configure` (`py server.py --configure` on Windows). Enter the region and key in the terminal; the key is hidden and saved only to the ignored `.env` file.
+3. Open `http://localhost:8000`. Later, start the app with `python3 server.py`.
+4. In **Vocabulary & settings**, choose Banu (`az-AZ-BanuNeural`) or Babek (`az-AZ-BabekNeural`) and press **Test**. Only Test confirms that the key works.
+5. Before a demo, press **Prepare demo voices** while online. Vocabulary phrases, composition rules, and the standard demo phrases are cached for the selected voice. Azure usage may be billed according to your subscription.
+
+Cached audio is stored in `.dilmanc-cache/tts/` and is reused only for the same text and voice. Dataset and model exports do not include audio; copy `.dilmanc-cache/` separately to a backup computer. Changing the port changes browser storage, so export the dataset before switching servers. If port 8000 is already in use, stop the old server first.
+
+| Message | Action |
+| --- | --- |
+| Speech server unavailable | Stop the static server and run `python3 server.py` |
+| Azure not configured | Run `python3 server.py --configure` |
+| Check the Azure key, region, and access | Confirm both values come from the same Speech resource, then reconfigure |
+| Request limit reached | Check the Azure quota and try again later |
+| Could not connect to Azure | Check the internet connection; only previously cached text can play |
+| Browser blocked audio | Press **Speak** or **Test**, then check the site's audio permission |
+
+The server is intended for `127.0.0.1` only. Public hosting is outside the scope of this setup.
+
 ## Privacy and storage
 
 The application's sign processing runs locally. It stores landmark feature samples and the trained model in browser storage, not recorded video on an application server.
@@ -107,7 +128,7 @@ npm run test:server
 
 For the simulated UI workflow, run `npm install` and `npm run test:ui`. Tests use synthetic sign features and mocked Azure audio, not live speech credentials or a real camera. Export the dataset before migration and keep the same browser profile and origin to retain browser storage. Portable model bundles can be imported on another computer without retraining; audio caches must be copied separately.
 
-The supplied Azerbaijani [setup guide](AZURE_QURULMA_AZ.md) and [demo preparation plan](FINAL_PLANI_AZ.md) provide additional context. Runtime assets under `vendor/` remain excluded from Git and must be downloaded after cloning.
+Runtime assets under `vendor/` remain excluded from Git and must be downloaded after cloning.
 
 ## Project structure
 

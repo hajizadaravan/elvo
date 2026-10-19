@@ -67,11 +67,10 @@
         </div>
         <div class="card span-5">
           <div class="card-head"><h2 data-i18n>Cavab</h2><button class="btn" id="micBtn">Danış</button></div>
-          <div class="card-body" style="display:grid;gap:14px">
-            <p class="reply" id="reply" aria-live="polite"><span class="muted" data-i18n>Danışın, cavab yazın və ya hazır cavab seçin.</span></p>
-            <form id="replyForm" class="inline"><label class="sr-only" for="replyInput" data-i18n>Yazılı cavab</label><input class="input" id="replyInput" placeholder="Cavabı yazın…" style="flex:1;min-width:120px"><button class="btn" type="submit" data-i18n>Göstər</button></form>
+          <div class="card-body reply-body">
+            <p class="reply" id="reply" aria-live="polite"></p>
+            <form id="replyForm" class="inline"><label class="sr-only" for="replyInput" data-i18n>Yazılı cavab</label><input class="input reply-input" id="replyInput" placeholder="Cavabı yazın…" data-i18n-placeholder="Cavabı yazın…"><button class="btn" type="submit" data-i18n>Göstər</button></form>
             <div class="actions"><button class="btn" data-reply="Zəhmət olmasa, gözləyin." data-i18n>Gözləyin</button><button class="btn" data-reply="Sizi həkimə yönləndirirəm." data-i18n>Həkimə yönləndir</button><button class="btn" data-reply="Şəxsiyyət vəsiqənizi göstərin." data-i18n>Vəsiqəniz</button></div>
-            <p class="small muted" data-i18n>Danışıq tanıma brauzerin xidmətindən istifadə edir; internet tələb edə bilər. Yazılı cavab oflayn işləyir.</p>
           </div>
         </div>
       </div>
@@ -162,14 +161,12 @@
           <div class="card-head"><h2 data-i18n>Səs və tanıma</h2></div>
           <div class="card-body" style="display:grid;gap:16px">
             <div class="inline">
-              <div class="field" style="flex:1"><label for="voiceSel" data-i18n>Azərbaycan səsi</label><select class="input" id="voiceSel"></select><span class="hint" data-i18n>Azure Neural · bütöv cümlə Azərbaycan dilində səslənir.</span></div>
+              <div class="field" style="flex:1"><label for="voiceSel" data-i18n>Azərbaycan səsi</label><select class="input" id="voiceSel"></select></div>
               <button class="btn" id="voiceTest" type="button" data-i18n>Sına</button>
             </div>
-            <p class="small muted" id="voiceStatus" role="status"></p>
-            <p class="small muted" id="azureStatus" role="status">Azure bağlantısı yoxlanır…</p>
-            <div class="actions"><button class="btn" id="speechCheck" type="button" data-i18n>Bağlantını yoxla</button><button class="btn" id="speechPrepare" type="button" data-i18n>Demo səslərini hazırla</button></div>
-            <p class="small muted" data-i18n>Hazırlanan cümlələr bu kompüterdə saxlanır. Yeni cümlə üçün internet lazımdır. API açarı yalnız lokal serverdə qalır.</p>
-            <div class="field"><label for="threshold"><span data-i18n>Əminlik həddi</span>: <span class="num" id="thresholdVal">80%</span></label><input type="range" id="threshold" min="50" max="98" value="80"><span class="hint" data-i18n>Yüksək hədd daha az səhv, amma daha yavaş tanıma deməkdir.</span></div>
+            <p class="small muted" id="azureStatus" role="status" hidden></p>
+            <div class="actions"><button class="btn" id="speechPrepare" type="button" data-i18n>Demo səslərini hazırla</button></div>
+            <div class="field"><label for="threshold"><span data-i18n>Əminlik həddi</span>: <span class="num" id="thresholdVal">80%</span></label><input type="range" id="threshold" min="50" max="98" value="80"></div>
           </div>
         </div>
         <div class="card span-6">
@@ -182,7 +179,6 @@
               <label class="btn" for="modelImportInput" data-i18n>Hazır model idxal et</label><input type="file" id="modelImportInput" accept="application/json,.json" hidden>
               <button class="btn danger" id="wipeBtn" data-i18n>Hamısını sil</button>
             </div>
-            <p class="small muted" data-i18n>Model paketi lüğət, sinif sırası və çəkiləri saxlayır. Yeni kompüterdə idxal edin, yenidən öyrətmədən işləsin. Dataseti ayrıca ehtiyat nüsxə kimi saxlayın.</p>
           </div>
         </div>
       </div>

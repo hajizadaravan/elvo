@@ -11,6 +11,8 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const pct = (v) => new Intl.NumberFormat(locale(), { style: 'percent', maximumFractionDigits: 0 }).format(v);
 const int = (v) => new Intl.NumberFormat(locale()).format(v);
 const clock = (iso) => new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+const errorKey = (e) => [e?.key || e?.message || String(e), e?.params || {}];
+const errorText = (e) => t(...errorKey(e));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 let M = null;                       // model.js, imported after TF.js loads
@@ -81,7 +83,7 @@ async function startCamera() {
 }
 
 function onFrame({ f, hands, ts }) {
-  if (S.rec?.phase === 'capture') { captureFrame(f, hands, ts).catch((e) => { stopRecording('Yazma xətası: {error}', {error: e.message}); }); return; }
+  if (S.rec?.phase === 'capture') { captureFrame(f, hands, ts).catch((e) => { stopRecording('Yazma xətası: {error}', {error: errorText(e)}); }); return; }
   if (S.view === 'live' && !S.training) liveStep(ts, hands);
   ++S.live.n;
 }
@@ -230,13 +232,11 @@ function speakPending() {
 }
 
 async function playSpeech(text) {
-  ui($('#voiceStatus'), 'Səs hazırlanır…');
   try {
-    if (await speech.speak(text)) ui($('#voiceStatus'), 'Səs: {voice}', {voice: t(speech.currentVoice().label)});
+    await speech.speak(text);
   } catch (e) {
-    ui($('#voiceStatus'), 'Səs alınmadı');
-    ui($('#azureStatus'), '{error}', {error: e.message});
-    toast(e.message);
+    showSpeechProblem(...errorKey(e));
+    toast(...errorKey(e));
   }
 }
 function undo() { S.live.pending.pop(); S.live.last = null; gate.reset(); renderSentence(); }
@@ -476,7 +476,7 @@ async function trainNow() {
     toast('Model saxlandı.');
   } catch (e) {
     candidate?.dispose();
-    console.error(e); log('Xəta: {error}', {error: e.message || e}); toast('Öyrətmə alınmadı.');
+    console.error(e); log('Xəta: {error}', {error: errorText(e)}); toast('Öyrətmə alınmadı.');
   } finally {
     S.training = false; prog.style.width = '0'; renderAll();
   }
@@ -518,15 +518,20 @@ function renderWords(st) {
 function renderVoices() {
   const list = speech.voices(); const cur = speech.currentVoice();
   $('#voiceSel').innerHTML = list.map((v) => `<option value="${esc(v.name)}" ${cur.name === v.name ? 'selected' : ''}>${esc(t(v.label))} · ${t('Azərbaycan dili')}</option>`).join('');
-  ui($('#voiceStatus'), 'Səs: {voice}', {voice: t(cur.label)});
+}
+
+// Show speech setup only when it needs action.
+function showSpeechProblem(key, params = {}) {
+  const el = $('#azureStatus');
+  el.hidden = !key;
+  if (key) ui(el, key, params); else { el.textContent = ''; delete el.dataset.i18n; delete el.dataset.i18nParams; }
 }
 
 async function refreshSpeechStatus() {
   const s = await speech.status();
-  ui($('#azureStatus'), !s.reachable ? 'Səs serveri açılmayıb. Layihəni python3 server.py ilə başladın.'
-    : s.configured ? 'Azure ayarları daxil edilib · {cached} cümlə səsi saxlanıb. Bağlantını “Sına” ilə yoxlayın.'
-    : 'Azure açarı və regionu daxil edilməyib. Terminalda python3 server.py --configure başladın. Saxlanmış səslər: {cached}.', {cached: s.cached});
-  ui($('#voiceStatus'), !s.reachable ? 'Səs serveri bağlıdır' : s.configured ? 'Səs: {voice}' : 'Səs: Azure qurulmayıb', {voice: t(speech.currentVoice().label)});
+  if (!s.reachable) showSpeechProblem('Səs serveri açılmayıb. Layihəni python3 server.py ilə başladın.');
+  else if (!s.configured && !s.cached) showSpeechProblem('Azure açarı və regionu daxil edilməyib. Terminalda python3 server.py --configure başladın.');
+  else showSpeechProblem(null);
 }
 
 function bindWords() {
@@ -548,7 +553,6 @@ function bindWords() {
   $('#resetVocabBtn').onclick = () => { if (confirm(t('Standart lüğət qaytarılsın? Nümunələr saxlanılır.'))) { S.vocab = resetVocab(); renderAll(); } };
   $('#voiceSel').onchange = (e) => { speech.stop(); speech.setVoice(e.target.value); renderVoices(); refreshSpeechStatus(); };
   $('#voiceTest').onclick = () => playSpeech('Salam! Başım ağrıyır, həkim lazımdır.');
-  $('#speechCheck').onclick = refreshSpeechStatus;
   $('#speechPrepare').onclick = async () => {
     const button = $('#speechPrepare'), voice = speech.currentVoice().name;
     const phrases = [...new Set([
@@ -559,12 +563,12 @@ function bindWords() {
     button.disabled = true; $('#voiceSel').disabled = true;
     try {
       for (let i = 0; i < phrases.length; i++) {
-        ui($('#azureStatus'), '{n} / {total} cümlə hazırlanır…', {n: i + 1, total: phrases.length});
+        showSpeechProblem('{n} / {total} cümlə hazırlanır…', {n: i + 1, total: phrases.length});
         await speech.prepare(phrases[i], { voice });
       }
-      toast('{n} cümlə bu səs üçün saxlandı. Eyni cümlələr internet olmadan səslənə bilər.', {n: phrases.length});
+      toast('{n} cümlə bu səs üçün saxlandı.', {n: phrases.length});
       await refreshSpeechStatus();
-    } catch (e) { ui($('#azureStatus'), '{error}', {error: e.message}); toast(e.message); }
+    } catch (e) { showSpeechProblem(...errorKey(e)); toast(...errorKey(e)); }
     finally { button.disabled = false; $('#voiceSel').disabled = false; }
   };
   $('#threshold').oninput = (e) => { S.threshold = e.target.value / 100; localStorage.setItem('dilmanc.threshold', e.target.value); $('#thresholdVal').textContent = pct(S.threshold); };
@@ -593,13 +597,13 @@ function bindWords() {
       samples.forEach((x) => byId.set(x.id, x));
       S.samples = [...byId.values()];
       toast('{added} əlavə olundu, {updated} yeniləndi.', {added: fresh, updated: samples.length - fresh}); renderAll();
-    } catch (err) { toast('İdxal alınmadı: {error}', {error: err.message}); }
+    } catch (err) { toast('İdxal alınmadı: {error}', {error: errorText(err)}); }
     e.target.value = '';
   };
   $('#modelDlBtn').onclick = async () => {
     if (!S.model) return;
     try { downloadText(await M.exportBundle(S.model, S.meta, S.vocab), 'dilmanc-hazir-model.json'); }
-    catch (e) { toast('Model ixrac olunmadı: {error}', {error: e.message}); }
+    catch (e) { toast('Model ixrac olunmadı: {error}', {error: errorText(e)}); }
   };
   $('#modelImportInput').onchange = async (e) => {
     const file = e.target.files[0]; if (!file || !M || S.training) return;
@@ -612,7 +616,7 @@ function bindWords() {
       saveVocab(imported.vocab);
       S.model?.dispose(); S.model = imported.model; S.meta = imported.meta; S.vocab = imported.vocab;
       imported = null; S.live.hist = []; S.live.pending = []; gate.reset(); renderAll(); toast('Hazır model idxal edildi. Yenidən öyrətmək lazım deyil.');
-    } catch (err) { imported?.model.dispose(); toast('Model idxal olunmadı: {error}', {error: err.message}); }
+    } catch (err) { imported?.model.dispose(); toast('Model idxal olunmadı: {error}', {error: errorText(err)}); }
     e.target.value = '';
   };
   $('#wipeBtn').onclick = async () => {
@@ -629,7 +633,7 @@ function downloadText(text, filename) {
 boot().catch((e) => {
   console.error(e);
   $('#liveFinding').hidden = false;
-  ui($('#liveFinding'), 'Tətbiq tam açılmadı. Lokal modelləri hazırlayın (scripts/vendor.sh), localhost üzərindən yenidən açın. Detal: {error}', {error: e.message || String(e)});
+  ui($('#liveFinding'), 'Tətbiq tam açılmadı. Lokal modelləri hazırlayın (scripts/vendor.sh), localhost üzərindən yenidən açın. Detal: {error}', {error: errorText(e)});
   toast('Açılış alınmadı. İnterneti və lokal faylları yoxlayın.');
 });
 window.addEventListener('pagehide', () => { speech.stop(); vision.stop(); rec?.abort(); clearTimeout(S.live.timer); });

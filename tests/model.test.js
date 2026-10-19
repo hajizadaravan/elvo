@@ -6,7 +6,7 @@ import { DEFAULT_SIGNS, DEFAULT_RULES } from '../js/vocab.js';
 import * as M from '../js/model.js';
 
 const require = createRequire(import.meta.url);
-globalThis.tf = require('../vendor/tf.min.js');
+globalThis.tf = require('./load-tf.cjs')();
 const classes = ['salam', '_fon'];
 const vocab = { signs: structuredClone(DEFAULT_SIGNS), rules: structuredClone(DEFAULT_RULES) };
 const sample = (sign, signer, value = 0) => ({ sign, signer, data: new Float32Array(T * D).fill(value) });
@@ -59,4 +59,24 @@ test('training runs a real epoch and produces valid probabilities (synthetic tes
     assert.equal(p.length, classes.length);
     assert.ok(Math.abs(p.reduce((a, b) => a + b, 0) - 1) < 1e-5);
   } finally { r.model.dispose(); }
+});
+test('imported model metadata is typed before rendering', async () => {
+  const model = M.build(classes.length);
+  let imported;
+  try {
+    const meta = { classes, accuracy: 0.5, right: 1, tested: 2, holdout: 'a', per: { salam: { right: 1, total: 1 }, _fon: { right: 0, total: 1 } }, confusion: [[1, 0], [1, 0]], history: { acc: [0.5], valAcc: [0.5] }, extra: '<img src=x onerror=alert(1)>' };
+    const text = await M.exportBundle(model, meta, vocab);
+    imported = await M.importBundle(text);
+    assert.equal(imported.meta.extra, undefined);
+    assert.deepEqual(imported.meta.confusion, [[1, 0], [1, 0]]);
+    for (const patch of [
+      { confusion: [['<img src=x onerror=alert(1)>', 0], [0, 1]] },
+      { per: { salam: { right: '<b>', total: 1 } } },
+      { history: { acc: ['<svg onload=alert(1)>'], valAcc: [0.5] } },
+      { accuracy: '<script>' },
+    ]) {
+      const bad = JSON.parse(text); Object.assign(bad.meta, patch);
+      await assert.rejects(() => M.importBundle(JSON.stringify(bad)));
+    }
+  } finally { model.dispose(); imported?.model.dispose(); }
 });

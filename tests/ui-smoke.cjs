@@ -7,7 +7,7 @@ const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(
 const dom=new JSDOM(fs.readFileSync(path.join(root,'index.html'),'utf8'),{url:'http://localhost:8000/?nocam',runScripts:'dangerously',resources:new LocalLoader(),pretendToBeVisual:true,virtualConsole:vc});
 const w=dom.window; w.HTMLCanvasElement.prototype.getContext=()=>({});
 for(const name of ['window','document','localStorage','location','HTMLElement','Event','HTMLInputElement','getComputedStyle'])globalThis[name]=typeof w[name]==='function'&&name==='getComputedStyle'?w[name].bind(w):w[name];
-globalThis.indexedDB=indexedDB;w.indexedDB=indexedDB;globalThis.tf=require(root+'/vendor/tf.min.js');tf.env().set('IS_BROWSER',true);globalThis.requestAnimationFrame=w.requestAnimationFrame.bind(w);globalThis.Charts=undefined;
+globalThis.indexedDB=indexedDB;w.indexedDB=indexedDB;globalThis.tf=require('./load-tf.cjs')();tf.env().set('IS_BROWSER',true);globalThis.requestAnimationFrame=w.requestAnimationFrame.bind(w);globalThis.Charts=undefined;
 const nativeFetch=globalThis.fetch;
 const speechCalls=[];let failSpeech=false;
 globalThis.fetch=async(url,options)=>{

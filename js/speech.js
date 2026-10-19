@@ -43,8 +43,10 @@ export async function prepare(text, { signal, voice = currentVoice().name } = {}
     throw new Error('Səs serverinə bağlantı yoxdur. python3 server.py ilə başladın.');
   }
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'Azure səsi alınmadı. python3 server.py ilə başladın və Azure ayarlarını yoxlayın.');
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error || 'Azure səsi alınmadı. python3 server.py ilə başladın və Azure ayarlarını yoxlayın.');
+    if (typeof body.key === 'string') { error.key = body.key; error.params = body.params && typeof body.params === 'object' ? body.params : {}; }
+    throw error;
   }
   if (!response.headers.get('Content-Type')?.startsWith('audio/')) throw new Error('Server audio qaytarmadı.');
   return response.blob();

@@ -21,9 +21,14 @@ MAX_TEXT = 1200
 
 
 class SpeechError(Exception):
-    def __init__(self, status, message):
-        super().__init__(message)
+    def __init__(self, status, message, key=None, params=None):
+        super().__init__(message.format(**(params or {})))
         self.status = status
+        self.key = key or message
+        self.params = params or {}
+
+    def payload(self):
+        return {"error": str(self), "key": self.key, "params": self.params}
 
 
 def read_env(path):
@@ -79,7 +84,7 @@ class AzureSpeech:
 
     def synthesize(self, text, voice):
         if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT:
-            raise SpeechError(400, f"Mətn 1–{MAX_TEXT} simvol olmalıdır.")
+            raise SpeechError(400, "Mətn 1-{max} simvol olmalıdır.", params={"max": MAX_TEXT})
         if not isinstance(voice, str) or voice not in VOICES:
             raise SpeechError(400, "Yalnız Azərbaycan dili üçün Banu və Babek seçilə bilər.")
         text = text.strip()
@@ -109,7 +114,7 @@ class AzureSpeech:
                     raise SpeechError(502, "Azure açarı, region və Speech resursuna giriş icazəsini yoxlayın.") from None
                 if e.code == 429:
                     raise SpeechError(429, "Azure sorğu limiti dolub. Bir qədər sonra yenidən sınayın.") from None
-                raise SpeechError(502, f"Azure səsi yarada bilmədi (HTTP {e.code}).") from None
+                raise SpeechError(502, "Azure səsi yarada bilmədi (HTTP {code}).", params={"code": e.code}) from None
             except (URLError, TimeoutError, OSError):
                 raise SpeechError(503, "Azure-a bağlantı alınmadı. İnterneti yoxlayın; əvvəl hazırlanmış cümlələr işləyə bilər.") from None
             if not audio or len(audio) > 8 * 1024 * 1024 or not content_type.startswith("audio/"):
@@ -204,7 +209,7 @@ def make_handler(service):
             except (ValueError, UnicodeDecodeError):
                 self.send_json(400, {"error": "JSON sorğusu düzgün deyil."})
             except SpeechError as e:
-                self.send_json(e.status, {"error": str(e)})
+                self.send_json(e.status, e.payload())
             except OSError:
                 self.send_json(500, {"error": "Audio faylı saxlanmadı. Diskdə boş yeri yoxlayın."})
 
