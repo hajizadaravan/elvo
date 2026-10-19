@@ -1,83 +1,133 @@
 # Dilmanc
 
-**Əllərin səsi.** Dilmanc kameradan Azərbaycan işarə dilini tanıyır və onu səsli Azərbaycan dilinə çevirir. Cavab isə əksinə gedir: həkim danışır, sözləri ekranda yazılır, kar insan oxuyur.
+**A voice for signing hands.** A browser-based sign recognition prototype for a clinic reception scenario in Azerbaijan.
 
-İlk ssenari: **poliklinikanın qeydiyyat masası.** 8 işarə, bir neçə hazır cümlə, iki tərəfli söhbət.
+Dilmanc learns a small, user-recorded vocabulary, recognizes signs through a webcam, composes predefined Azerbaijani phrases, and reads them aloud. A speech-to-text panel lets a hearing person reply on screen.
 
-Hər şey brauzerin içində işləyir: nümunə yazmaq, modeli öyrətmək və tanımaq. Server yoxdur, API açarı yoxdur, video heç yerə göndərilmir.
+This is a limited-vocabulary prototype, not a general sign language translator or a medical device. Validate every sign with fluent local signers before collecting training data.
 
-## İşə salmaq
-
-Kamera yalnız `localhost` və ya `https` üzərində açılır, ona görə faylı birbaşa açmaq olmaz:
+## Quick start
 
 ```sh
-npx serve .            # və ya
+git clone https://github.com/reav4nn/dilmanc.git
+cd dilmanc
 python3 -m http.server 8000
 ```
 
-Sonra `http://localhost:3000` (və ya `:8000`) ünvanını açın.
+Open `http://localhost:8000` and allow camera access. Alternatively, run `npx serve .` and open the URL it prints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
 
-- **Microsoft Edge** istifadə edin: Azərbaycan dilində təbii səslər (Banu, Babek) yalnız Edge-də var. Chrome türk səsinə keçir.
-- Danışığı mətnə çevirmək (cavab paneli) Chrome və Edge-də işləyir.
-- **Səhnə üçün oflayn rejim:** `sh scripts/vendor.sh` bütün modelləri `vendor/` qovluğuna endirir (təxminən 35 MB). Bundan sonra zal Wi-Fi-ı lazım deyil.
+Use a current version of Chrome or Edge. Available Azerbaijani and Turkish speech voices depend on the browser, operating system, and installed voices. Check the voice selector before presenting; do not assume a specific voice is available.
 
-## Necə işləyir
+## Features
 
-1. **MediaPipe** hər kadrda iki əlin 21 nöqtəsini və çiyinləri tapır.
-2. Hər kadr 134 rəqəmə çevrilir: əlin forması (biləyə nisbətən) və əlin harada olduğu (çiyinlərə nisbətən). Ona görə model kameranın məsafəsindən və insanın boyundan çox asılı deyil.
-3. 30 kadr (təxminən 1 saniyə) bir nümunədir. Kiçik **Conv1D** şəbəkə (TensorFlow.js) bu ardıcıllığı işarəyə çevirir.
-   Öyrətmə zamanı hər nümunənin güzgü variantı da yaradılır, ona görə solaxay insan da tanınır, hətta datada solaxay olmasa belə.
-4. Tanınan işarələr qaydalarla cümləyə çevrilir: `baş + ağrı` → "Başım ağrıyır." Qaydaları "Lüğət və ayarlar" bölməsində dəyişmək olur.
-5. 1,8 saniyə sükutdan sonra cümlə səsləndirilir (və ya `Enter`).
+- Live webcam sign recognition with hand landmark overlays and confidence scores.
+- Recording with a countdown, signer labels, and automatic rejection of sign samples with insufficient hand visibility.
+- In-browser TensorFlow.js training and per-class evaluation.
+- Random stratified validation or a held-out signer evaluation, followed by training a final model on all samples.
+- Editable vocabulary and phrase composition rules.
+- Speech synthesis and browser-dependent Azerbaijani speech recognition.
+- Dataset export and import across team members' computers.
+- Projector mode and local dependency downloads.
 
-## Məlumat toplama protokolu
+## Workflow
 
-Münsiflərin ilk sualı: "Bu, sizin öz əllərinizdə işləyir, bəs başqasında?" Cavab rəqəmlə olmalıdır.
+1. Validate the vocabulary with fluent signers.
+2. In **Nümunə yazma**, select a sign, enter the actual signer's name, and record examples.
+3. Record **Fon** examples as well: hands out of view, resting hands, ordinary gestures, touching the face, and handling objects without signing.
+4. Collect each sign from multiple people, with varied clothing, lighting, and camera distances.
+5. In **Model**, select a validation method and train.
+6. In **Canlı tərcümə**, test recognition, phrase composition, and speech output.
 
-1. **İşarələri uydurmayın.** Hər işarəni Azərbaycan işarə dilini bilən biri ilə (Kar və Lal Cəmiyyəti, məktəb müəllimi, CODA) yoxlayın və videoya çəkin. Lazım olsa lüğəti dəyişin.
-2. Hər işarə üçün **ən azı 20 nümunə, 3+ imzalayandan**. "Fon" sinfi də vacibdir: əllər aşağı, saç düzəltmək, telefon tutmaq.
-3. Hər kəs öz adı ilə yazsın. Ad modelin yoxlanması üçün lazımdır.
-4. Fərqli işıq, fərqli paltar, fərqli məsafə. Bir neçə nümunəni oturaraq yazın.
-5. Komanda bir neçə kompüterdə yazırsa: "Dataseti yüklə" → bir kompüterdə "Dataset idxal et".
-6. Modeli **"Görülməmiş imzalayan"** rejimində öyrədin: model bir insanı heç görmədən onun üzərində yoxlanır. Təqdimatda bu rəqəmi göstərin, sonra son model avtomatik bütün data ilə öyrədilir.
+Keep signer labels accurate. Incorrect labels invalidate held-out signer evaluation, even if recognition appears to work.
 
-## Demo ssenarisi (3 dəqiqə)
+### Dataset guidance
 
-1. **Problem (30 san).** Kar insan həkimə gedir. Tərcüməçi yoxdur, yazı ilə danışmaq yavaşdır və hamı oxuya bilmir.
-2. **Canlı (90 san).** Səhnə rejimi (`Səhnə rejimi`, çıxış `Esc`). İmzalayan: *salam* → *baş* → *ağrı* → *dərman*. Dilmanc deyir: "Salam! Başım ağrıyır, dərman lazımdır." Komanda üzvü həkim kimi cavab verir, sözlər ekranda görünür.
-3. **Sübut (30 san).** Model bölməsi: görülməmiş imzalayan üzərində dəqiqlik, hər işarə üzrə nəticə.
-4. **Səhnədə yeni işarə (30 san).** Münsiflərdən biri bir söz seçir, 10 nümunə yazılır, model 30 saniyədə yenidən öyrənir və tanıyır.
+Aim for at least 20 samples per class from at least three signers as an initial collection target, not a guarantee of accuracy. Background examples should cover realistic non-signing movements.
 
-Ehtiyat plan: canlı demo alınmasa, eyni ssenarinin əvvəlcədən çəkilmiş videosu.
+To combine recordings, export each dataset and import them on one computer. Imported samples with an existing ID replace the stored version, allowing corrected signer labels to be applied without duplication.
 
-## Komanda planı (bu gün)
+For an honest demo result, report the number of test samples, class coverage, and evaluation method. Random sample splits can be optimistic when the same people and recording conditions appear in both sets. A held-out signer result is only meaningful when labels are correct and the test signer covers the intended vocabulary.
 
-| Kim | Nə |
-|---|---|
-| 1 nəfər | İşarə dilini bilən adamı tapır, 8 işarəni təsdiqlədir |
-| 2 nəfər | Nümunə yazır (hərəsi hər işarə üçün 10+) |
-| 1 nəfər | Modeli öyrədir, hədd və qaydaları tənzimləyir |
-| 1 nəfər | Slaydlar, ehtiyat video, demo məşqi |
+## How it works
 
-## Fayllar
+1. MediaPipe detects up to two hands and periodically estimates body landmarks.
+2. Each frame becomes 134 features describing hand presence, wrist position relative to the shoulders, and hand shape relative to the wrist.
+3. A 30-frame window feeds a small temporal Conv1D classifier trained with TensorFlow.js.
+4. Training augmentation adds temporal crops, position and scale variation, shape jitter, and random mirroring. Mirroring swaps hand slots and flips horizontal coordinates; it is a robustness technique, not proof of left-handed signer accuracy.
+5. Predictions are smoothed and filtered by a confidence threshold.
+6. Predefined rules compose recognized tokens, for example `baş + ağrı` becomes `Başım ağrıyır.`
+7. The phrase is spoken after a pause or when the user presses Enter.
 
-```
-index.html        tətbiqin bütün ekranları
-css/app.css       üslub
-js/main.js        ekranlar, yazma, canlı tərcümə
-js/vision.js      kamera + MediaPipe əl və bədən nöqtələri
-js/features.js    kadr → 134 rəqəm, augmentasiya
-js/model.js       TF.js modeli: öyrətmə, yoxlama, saxlama
-js/vocab.js       lüğət və cümlə qaydaları
-js/speech.js      səsləndirmə və danışığın tanınması
-js/store.js       nümunələr IndexedDB-də, idxal və ixrac
-js/charts.js      qrafiklər
-scripts/vendor.sh oflayn rejim üçün modelləri endirir
+Thirty frames are approximately one second at 30 FPS. Actual capture duration and training time depend on the device.
+
+## Local dependencies and connectivity
+
+```sh
+sh scripts/vendor.sh
 ```
 
-Test üçün kamerasız açmaq: `http://localhost:8000/?nocam`.
+This downloads TensorFlow.js, MediaPipe, and landmark models into `vendor/`. These files are excluded from Git. With the downloads complete, local sign recording, training, and recognition can run without fetching these dependencies from a CDN.
 
-## Məhdudiyyətlər
+Google Fonts still requires a network connection; system fonts are used as a fallback. Speech recognition and some speech synthesis voices may use browser or provider services and may require internet access. Test the exact presentation setup before relying on offline operation.
 
-- Bu, kiçik lüğətli prototipdir, tam işarə dili tərcüməçisi deyil. Qrammatika, mimika və barmaq əlifbası hələ yoxdur.
-- Azərbaycanda karların çoxu türk işarə dilinə yaxın variantdan istifadə edir. Lüğəti real istifadəçilərlə birlikdə qurun.
+## Privacy and storage
+
+The application's sign processing runs locally. It stores landmark feature samples and the trained model in browser storage, not recorded video on an application server.
+
+Browser speech services may process audio or text remotely. Do not describe the complete application as offline or entirely local when those services are enabled. Obtain participants' consent before collecting or sharing datasets. Export backups before clearing browser storage.
+
+## Three-minute demo
+
+1. **Problem, 30 seconds:** explain the communication barrier at a clinic reception.
+2. **Live interaction, 90 seconds:** demonstrate `salam`, `baş`, `ağrı`, and `dərman`, followed by a spoken reply displayed as text.
+3. **Evidence, 30 seconds:** show the actual evaluation method, sample counts, and per-class results.
+4. **Adaptability, 30 seconds:** explain custom vocabulary and demonstrate recording or retraining only if it reliably fits the time available.
+
+Prepare a backup recording. Avoid promising a fixed training time or perfect accuracy.
+
+## Keyboard shortcuts
+
+- **Space:** start or stop recording in the recording view.
+- **Enter:** speak the pending phrase in the live view.
+- **Backspace:** remove the last pending sign in the live view.
+- **Escape:** leave projector mode.
+
+For camera-free interface testing, open `http://localhost:8000/?nocam`.
+
+## Project structure
+
+```text
+index.html         Application views
+css/app.css        Visual styles
+js/main.js         UI, recording, and live recognition flow
+js/vision.js       Camera and MediaPipe integration
+js/features.js     Feature extraction and augmentation
+js/model.js        Training, evaluation, inference, and persistence
+js/vocab.js        Vocabulary and phrase composition
+js/speech.js       Browser speech synthesis and recognition
+js/store.js        IndexedDB storage and dataset import/export
+js/charts.js       Evaluation charts
+scripts/vendor.sh  Local dependency downloader
+```
+
+## Commit convention
+
+Write commit messages and repository documentation in English. Use Conventional Commits:
+
+```text
+feat(scope): add a new capability
+fix(scope): correct existing behavior
+docs(scope): update documentation
+chore(scope): maintain tooling or configuration
+```
+
+Keep Azerbaijani interface labels and spoken phrases in Azerbaijani.
+
+## Limitations
+
+- Recognition is restricted to the recorded vocabulary and training conditions.
+- Facial grammar, unrestricted continuous signing, and fingerspelling are not implemented.
+- Rule-based phrases are not a general sign language grammar model.
+- Mirroring augmentation and high confidence scores do not establish real-world accuracy.
+- Validate signing conventions with the intended Azerbaijani users rather than assuming one universal vocabulary.
+- Do not use this prototype for clinical decisions or as a replacement for a qualified interpreter.
