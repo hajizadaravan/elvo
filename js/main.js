@@ -483,10 +483,13 @@ function bindWords() {
       const { vocab, samples } = fromJSON(await file.text());
       for (const s of vocab?.signs || []) if (!S.vocab.signs.some((x) => x.id === s.id)) S.vocab.signs.push(s);
       saveVocab(S.vocab);
-      const known = new Set(S.samples.map((x) => x.id));
-      const fresh = samples.filter((x) => !known.has(x.id));
-      await putMany(fresh); S.samples.push(...fresh);
-      toast(`${fresh.length} yeni nümunə əlavə olundu`); renderAll();
+      // same id = the same recording: the imported copy wins, so a file with corrected names fixes them
+      const byId = new Map(S.samples.map((x) => [x.id, x]));
+      const fresh = samples.filter((x) => !byId.has(x.id)).length;
+      await putMany(samples);
+      samples.forEach((x) => byId.set(x.id, x));
+      S.samples = [...byId.values()];
+      toast(`${fresh} yeni nümunə əlavə olundu, ${samples.length - fresh} nümunə yeniləndi`); renderAll();
     } catch (err) { toast(`İdxal alınmadı: ${err.message}`); }
     e.target.value = '';
   };
