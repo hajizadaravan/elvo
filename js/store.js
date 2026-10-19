@@ -1,5 +1,7 @@
 // Samples live in IndexedDB (a few hundred × 30 frames is too large for localStorage).
 // A sample: { id, sign, signer, data: Float32Array(T*D), at: ISO time }
+import { T, D } from './features.js';
+import { validateVocab, classesOf } from './vocab.js';
 const DB = 'dilmanc', STORE = 'samples';
 let dbp = null;
 
@@ -50,6 +52,12 @@ export function toJSON(samples, vocab) {
 
 export function fromJSON(text) {
   const j = JSON.parse(text);
-  if (j.format !== 'dilmanc-dataset') throw new Error('Bu Dilmanc dataset faylı deyil');
+  if (j.format !== 'dilmanc-dataset' || j.version !== 1 || !Array.isArray(j.samples)) throw new Error('Bu Dilmanc dataset faylı deyil');
+  validateVocab(j.vocab);
+  const classes = new Set(classesOf(j.vocab)), ids = new Set();
+  for (const s of j.samples) {
+    if (!s || typeof s.id !== 'string' || !s.id || ids.has(s.id) || !classes.has(s.sign) || typeof s.signer !== 'string' || !s.signer.trim() || !Array.isArray(s.data) || s.data.length !== T * D || !s.data.every((v) => typeof v === 'number' && Number.isFinite(v))) throw new Error('Datasetdə səhv, təkrarlanan və ya uyğun olmayan nümunə var.');
+    ids.add(s.id);
+  }
   return { vocab: j.vocab, samples: j.samples.map((x) => ({ ...x, data: Float32Array.from(x.data) })) };
 }
