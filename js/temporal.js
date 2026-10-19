@@ -1,6 +1,11 @@
 import { T, D, HAND } from './features.js';
 
 export const WINDOW_MS = 1000;
+// After hands leave, the window still holds the last sign; keep evaluating it briefly.
+export const HAND_TAIL_MS = 600;
+export const MIN_HAND_SHARE = 0.5;
+
+export const handsRecent = (ts, handsSeenAt) => ts - handsSeenAt <= HAND_TAIL_MS;
 
 // Use elapsed time, not a camera's FPS. No interpolation across long tracking stalls.
 export function resampleTimed(frames, start, duration = WINDOW_MS) {

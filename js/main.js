@@ -4,7 +4,7 @@ import { allSamples, putSample, putMany, deleteSample, clearSamples, newId, toJS
 import { Vision } from './vision.js';
 import * as speech from './speech.js';
 import { t, ui, locale, setLanguage, applyTranslations } from './i18n.js';
-import { WINDOW_MS, resampleTimed, RecognitionGate } from './temporal.js';
+import { WINDOW_MS, MIN_HAND_SHARE, resampleTimed, RecognitionGate, handsRecent } from './temporal.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -85,7 +85,7 @@ async function startCamera() {
 
 function onFrame({ f, hands, ts }) {
   if (S.rec?.phase === 'capture') { captureFrame(f, hands, ts).catch((e) => { stopRecording('Yazma xətası: {error}', {error: errorText(e)}); }); return; }
-  if (S.view === 'live' && !S.training) liveStep(ts, hands);
+  if (S.view === 'live' && !S.training) liveStep(ts);
   ++S.live.n;
 }
 
@@ -186,18 +186,19 @@ function renderSeen(top) {
   seen(wordOf(top.id), t(top.p >= S.threshold ? 'Əminlik {p}' : 'Həddən aşağı: {p} / {threshold}', { p: pct(top.p), threshold: pct(S.threshold) }), top.p < S.threshold);
 }
 
-function liveStep(ts, hands) {
+function liveStep(ts) {
   const L = S.live;
   if (!S.model || modelStale()) return;
-  if (!hands) { gate.rest(ts); L.hist = []; }
+  // The last sign of a sequence often ends as the hands drop, so keep evaluating for a short tail.
+  const recent = handsRecent(ts, vision.handsSeenAt);
+  if (!recent) { gate.rest(ts); L.hist = []; }
   if (L.n % 2) return;
-  if (ts - vision.handsSeenAt > 600) {
+  if (!recent) {
     if (L.hist.length || !$('#seenWord').classList.contains('none')) { L.hist = []; L.last = null; seen('-', t('Əllər görünmür.'), true); $('#probs').innerHTML = ''; }
     return;
   }
-  if (!hands) return;
   const win = vision.window(); if (!win) { gate.update({ ts }); return; }
-  if (win.filter((f) => f[2] > 0.5 || f[68] > 0.5).length < T * 0.6) { gate.update({ ts }); return; }
+  if (win.filter((f) => f[2] > 0.5 || f[68] > 0.5).length < T * MIN_HAND_SHARE) { gate.update({ ts }); return; }
   const p = M.predict(S.model, stack(win));
   L.hist.push(p); if (L.hist.length > 4) L.hist.shift();
   const avg = p.map((_, i) => L.hist.reduce((a, h) => a + h[i], 0) / L.hist.length);
