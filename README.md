@@ -17,7 +17,7 @@ python3 server.py --configure
 
 Python 3.10+ is required; the server uses the standard library only. Enter your Azure Speech region and key at the terminal prompt; the key is hidden and saved in a local ignored `.env` file. Open `http://localhost:8000` and allow camera access. On subsequent starts, run `python3 server.py`. Static servers such as `npx serve` do not provide the Azure speech endpoints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
 
-Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [Azure speech setup](#azure-speech-setup).
+Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices, at a 10% faster rate with short pauses between sentences. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [Azure speech setup](#azure-speech-setup).
 
 ## Features
 
@@ -58,7 +58,7 @@ For an honest demo result, report the number of test samples, class coverage, an
 2. Each frame becomes 134 features describing hand presence, wrist position relative to the shoulders, and hand shape relative to the wrist.
 3. A one-second window is resampled to 30 frames and feeds a small temporal Conv1D classifier trained with TensorFlow.js; long tracking stalls are rejected.
 4. Training augmentation adds temporal crops, position and scale variation, shape jitter, and random mirroring. Mirroring swaps hand slots and flips horizontal coordinates; it is a robustness technique, not proof of left-handed signer accuracy.
-5. Predictions require a stable winner, confidence threshold, and margin over the runner-up. Repeating the same sign requires a neutral interval.
+5. Predictions require a stable winner, confidence threshold, and margin over the runner-up. Repeating the same sign requires a neutral interval. Evaluation continues for 600 ms after the hands leave, so a final sign that ends as the hands drop is still recognized.
 6. Predefined rules compose recognized tokens, for example `baş + ağrı` becomes `Başım ağrıyır.`
 7. Each new phrase is synthesized during the pause, so it is ready when it is spoken after the pause or when the user presses Enter.
 

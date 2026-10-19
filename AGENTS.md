@@ -134,7 +134,8 @@ The interface supports Azerbaijani and English. The selected interface language 
 - Use the current `locale()` for number, percentage, and time formatting.
 - Switching language must not reset the camera, erase samples, replace vocabulary, or discard the trained model.
 - Speech output offers only the Azure Azerbaijani voices Banu and Babek. Do not add Turkish voices.
-- Keep speech latency low: `commit()` prefetches the composed phrase during the auto-speak pause, startup warms vocabulary and rule phrases for the current voice, and `server.py` reuses HTTPS connections to Azure. Playback reuses one unlocked `Audio` element; do not create a new element per phrase.
+- Keep speech latency low: `commit()` prefetches the composed phrase during the auto-speak pause, startup warms vocabulary and rule phrases for the current voice, and `server.py` reuses HTTPS connections to Azure. Playback reuses one unlocked `Audio` element; do not create a new element per phrase. Speech rate and pauses are `SPEECH_RATE` and `PAUSES` in `server.py`; they are part of the audio cache key.
+- Live recognition keeps evaluating for `HAND_TAIL_MS` after hands leave, because the last sign of a sequence often ends as the hands drop. Do not return early on frames without hands.
 
 ## Recognition and evaluation
 
