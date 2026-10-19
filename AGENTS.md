@@ -112,7 +112,7 @@ The project was renamed from Dilmanc to Elvo. Every persisted identifier below k
 | `.env` (ignored) | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` |
 | `.dilmanc-cache/tts/` (ignored) | Cached MP3 audio keyed by voice and text |
 
-Storage is origin-specific. Changing host or port can make existing browser data appear missing; that does not prove deletion.
+Storage is origin-specific. Changing host or port can make existing browser data appear missing; that does not prove deletion. Before moving to another computer, browser profile, host, or port, export the dataset. Model bundles import on another computer without retraining. Audio caches are not part of either export; copy `.dilmanc-cache/` separately.
 
 Dataset exports use `format: "dilmanc-dataset"` and `version: 1`, with `exportedAt`, `vocab`, and `samples`. Typed arrays become numeric arrays in JSON and are restored on import.
 
@@ -162,6 +162,26 @@ Landmark processing and model training happen in the browser; this implementatio
 - Browser speech recognition may use remote services.
 
 Keep these distinctions in documentation, not as persistent reassuring UI slogans. Do not add network transmission of participant data without explicit authorization.
+
+## Documentation
+
+`README.md` is the public front page for visitors: what Elvo is, how it works, how to run it, privacy, limitations, and the team. Keep contributor and agent material here in `AGENTS.md` instead: conventions, the file map, data contracts, verification commands, and demo guidance. Do not duplicate it in the README; link to this file.
+
+- README visuals live in `assets/readme/`. The animated GIFs are rendered from the team's pitch deck, which is not part of this repository; replace them as files rather than editing them.
+- README media must not contain camera captures, participant data, or identifiable signers. The pitch video includes a real webcam recording, so it is not committed; embed it only through a GitHub web upload with the owner's consent.
+- Light and dark variants are paired with `<picture>` and `prefers-color-scheme`. Keep both when changing one.
+- Keep README claims inside the product scope above: no accuracy figures unless they come from a reported evaluation with sample counts, classes, and split method.
+
+### Demo guidance
+
+For a three-minute live demo:
+
+1. **Problem, 30 seconds:** the communication barrier at a clinic reception.
+2. **Live interaction, 90 seconds:** for example `salam`, `baş`, `ağrı`, and `dərman`, followed by a spoken reply shown as text.
+3. **Evidence, 30 seconds:** the actual evaluation method, sample counts, and per-class results.
+4. **Adaptability, 30 seconds:** custom vocabulary; record or retrain live only if it reliably fits the time.
+
+Prepare a backup recording. Do not promise a fixed training time or perfect accuracy.
 
 ## Verification
 

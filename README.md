@@ -1,177 +1,280 @@
-<p><img src="assets/elvo-logo.svg" alt="Elvo" width="220"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.gif">
+    <img src="assets/readme/hero-light.gif" alt="Elvo: a voice for signing hands" width="720">
+  </picture>
+</p>
 
-# Elvo
+<p align="center">
+  <b>Sign recognition for clinic reception in Azerbaijan, running in the browser.</b><br>
+  Elvo recognizes a recorded vocabulary of signs through a webcam, builds a predefined Azerbaijani sentence, and speaks it aloud. The receptionist answers on screen.
+</p>
 
-**A voice for signing hands.** A browser-based sign recognition prototype for a clinic reception scenario in Azerbaijan.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-research%20prototype-235ad4" alt="Status: research prototype">
+  <img src="https://img.shields.io/badge/TensorFlow.js-4.22-FF6F00?logo=tensorflow&logoColor=white" alt="TensorFlow.js 4.22">
+  <img src="https://img.shields.io/badge/MediaPipe-0.10.14-0097A7" alt="MediaPipe Tasks Vision 0.10.14">
+  <img src="https://img.shields.io/badge/Azure%20Speech-az--AZ%20neural-0078D4" alt="Azure Speech az-AZ neural voices">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/interface-AZ%20%7C%20EN-2a2e31" alt="Interface in Azerbaijani and English">
+</p>
 
-Elvo learns a small, user-recorded vocabulary, recognizes signs through a webcam, composes predefined Azerbaijani phrases, and reads them aloud. A speech-to-text panel lets a hearing person reply on screen.
+<p align="center">
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#train-your-own-signs">Train your own signs</a> ·
+  <a href="#privacy-and-connectivity">Privacy</a> ·
+  <a href="#limitations">Limitations</a> ·
+  <a href="#team">Team</a>
+</p>
 
-This is a limited-vocabulary prototype, not a general sign language translator or a medical device. Validate every sign with fluent local signers before collecting training data.
+> [!IMPORTANT]
+> Elvo is a limited-vocabulary research prototype. It is not a general sign language translator, a medical device, or a replacement for a qualified interpreter. Validate every sign with fluent Azerbaijani Sign Language users before collecting training data.
 
-## Quick start
+<!-- Pitch video: upload elvo-pitch.mp4 through the GitHub web editor and paste the generated link on its own line here. -->
 
-```sh
-git clone https://github.com/reav4nn/elvo.git
-cd elvo
-sh scripts/vendor.sh
-python3 server.py --configure
-```
+## Why Elvo
 
-Python 3.10+ is required; the server uses the standard library only. Enter your Azure Speech region and key at the terminal prompt; the key is hidden and saved in a local ignored `.env` file. Open `http://localhost:8000` and allow camera access. On subsequent starts, run `python3 server.py`. Static servers such as `npx serve` do not provide the Azure speech endpoints. Camera access requires HTTPS or localhost; opening `index.html` directly will not work.
+A Deaf patient walks up to a clinic reception. The receptionist does not sign, and an interpreter is not always available. Elvo covers the first, most common exchanges at that desk: a greeting, a request for a doctor, where to go, how urgent it is.
 
-Use a current version of Chrome or Edge. Speech output uses Azure Azerbaijani Neural TTS with Banu or Babek, independently of installed browser voices, at a 10% faster rate with short pauses between sentences. Select a voice and use **Test** to verify it. **Prepare demo voices** caches vocabulary and demo phrases for that voice; new text requires internet. See [Azure speech setup](#azure-speech-setup).
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/solution-dark.gif">
+    <img src="assets/readme/solution-light.gif" alt="A recognized sign becomes an Azerbaijani phrase that is spoken aloud" width="100%">
+  </picture>
+</p>
 
-## Features
+<table>
+  <tr>
+    <td width="33%" valign="top"><b>Sign</b><br>A webcam and MediaPipe landmarks. Recognition and training run in the browser, with no special hardware.</td>
+    <td width="33%" valign="top"><b>Phrase</b><br>Recognized signs map to predefined clinic phrases. Short sequences combine into full sentences.</td>
+    <td width="33%" valign="top"><b>Voice</b><br>Azure Azerbaijani neural voices, Banu or Babek, speak the phrase. The receptionist replies by voice, typing, or one tap.</td>
+  </tr>
+</table>
 
-- Azerbaijani and English interface languages, with a saved AZ / EN selection. Vocabulary, spoken phrases, and speech recognition remain Azerbaijani.
-- Live webcam sign recognition with hand landmark overlays and confidence scores.
-- Recording with a countdown, signer labels, and automatic rejection of sign samples with insufficient hand visibility.
-- In-browser TensorFlow.js training and per-class evaluation.
-- Random stratified validation or a held-out signer evaluation, followed by training a final model on all samples.
-- Editable vocabulary and phrase composition rules.
-- Azure Azerbaijani speech synthesis with local audio caching; browser-dependent Azerbaijani speech recognition, typed replies, and quick replies.
-- Dataset validation and export/import across team members' computers.
-- Portable model bundles containing weights, class order, vocabulary, and evaluation metadata.
-- Confusion matrices and balanced recall for evaluation.
-- Projector mode and local dependency downloads.
+## Highlights
 
-## Workflow
-
-1. Validate the vocabulary with fluent signers.
-2. In **Nümunə yazma**, select a sign, enter the actual signer's name, and record examples.
-3. Record **Fon** examples as well: hands out of view, resting hands, ordinary gestures, touching the face, and handling objects without signing.
-4. Collect each sign from multiple people, with varied clothing, lighting, and camera distances.
-5. In **Model**, select a validation method and train.
-6. In **Canlı tərcümə**, test recognition, phrase composition, and speech output.
-
-Keep signer labels accurate. Incorrect labels invalidate held-out signer evaluation, even if recognition appears to work.
-
-### Dataset guidance
-
-Aim for at least 20 samples per class from at least three signers as an initial collection target, not a guarantee of accuracy. Background examples should cover realistic non-signing movements.
-
-To combine recordings, export each dataset and import them on one computer. Imported samples with an existing ID replace the stored version, allowing corrected signer labels to be applied without duplication.
-
-For an honest demo result, report the number of test samples, class coverage, and evaluation method. Random sample splits can be optimistic when the same people and recording conditions appear in both sets. A held-out signer result is only meaningful when labels are correct and the test signer covers the intended vocabulary.
+<table>
+  <tr>
+    <td width="50%" valign="top"><b>Live recognition</b><br>Webcam sign recognition with hand landmark overlays, confidence scores, and a gate that waits for a stable, confident winner.</td>
+    <td width="50%" valign="top"><b>Your vocabulary</b><br>Add signs and phrase rules in the app. Record samples, train, and evaluate without leaving the browser.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><b>Honest evaluation</b><br>Random per-class split or held-out signer evaluation, confusion matrix, and balanced recall. The final model then trains on all samples.</td>
+    <td width="50%" valign="top"><b>Two-way conversation</b><br>Azerbaijani speech recognition where the browser supports it, typed replies, and quick replies shown large for the patient.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><b>Team-friendly data</b><br>Validated dataset export and import that merge recordings across computers by sample ID, plus portable model bundles.</td>
+    <td width="50%" valign="top"><b>Ready for a stage</b><br>Azerbaijani and English interface, projector mode, keyboard shortcuts, cached demo phrases, and optional local copies of the libraries and landmark models.</td>
+  </tr>
+</table>
 
 ## How it works
 
-1. MediaPipe detects up to two hands and periodically estimates body landmarks.
-2. Each frame becomes 134 features describing hand presence, wrist position relative to the shoulders, and hand shape relative to the wrist.
-3. A one-second window is resampled to 30 frames and feeds a small temporal Conv1D classifier trained with TensorFlow.js; long tracking stalls are rejected.
-4. Training augmentation adds temporal crops, position and scale variation, shape jitter, and random mirroring. Mirroring swaps hand slots and flips horizontal coordinates; it is a robustness technique, not proof of left-handed signer accuracy.
-5. Predictions require a stable winner, confidence threshold, and margin over the runner-up. Repeating the same sign requires a neutral interval. Evaluation continues for 600 ms after the hands leave, so a final sign that ends as the hands drop is still recognized.
-6. Predefined rules compose recognized tokens, for example `baş + ağrı` becomes `Başım ağrıyır.`
-7. Each new phrase is synthesized during the pause, so it is ready when it is spoken after the pause or when the user presses Enter.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/pipeline-dark.gif">
+    <img src="assets/readme/pipeline-light.gif" alt="Landmarks, a one-second window of features, a classifier, a phrase rule, and a voice" width="100%">
+  </picture>
+</p>
 
-Capture spans one second across supported camera frame rates. Training time depends on the device and dataset. Held-out signer evaluation requires every class in both partitions; the final live model is then trained on all samples.
+1. **Landmarks.** MediaPipe Tasks Vision tracks up to two hands every frame and the upper body every third frame.
+2. **Time window.** Each frame becomes 134 features: the nose relative to the shoulders, then a slot for each hand with presence, wrist position, and 21 wrist-relative 3D points. One second of frames is resampled by timestamp to 30 frames, so capture does not depend on camera FPS. Windows with tracking gaps over 250 ms are rejected.
+3. **Classifier.** A small temporal convolutional network in TensorFlow.js scores every sign plus a background class.
+4. **Gate.** A sign counts only when it clears the confidence threshold (80% by default), leads the runner-up by a margin, and stays on top long enough. Evaluation continues for 600 ms after the hands drop, so a final sign is not lost.
+5. **Phrase.** The longest matching predefined rule turns signs into a sentence. Otherwise each sign speaks its own phrase.
+6. **Voice.** The local Python server sends the text to Azure, caches the MP3 on disk, and plays it back. The phrase is prepared during the pause before it is spoken.
 
-## Local dependencies and connectivity
-
-```sh
-sh scripts/vendor.sh
+```mermaid
+flowchart LR
+  subgraph browser["Browser"]
+    cam["Webcam"] --> mp["MediaPipe landmarks"]
+    mp --> win["1 s window, 30 x 134"]
+    win --> clf["TensorFlow.js classifier"]
+    clf --> gate["Confidence gate"]
+    gate --> rules["Phrase rules"]
+    store[("IndexedDB: samples and model")]
+  end
+  rules -- "phrase text" --> srv["Local server on 127.0.0.1"]
+  srv -- "uncached text" --> az["Azure az-AZ neural TTS"]
+  az -- "MP3" --> srv
+  srv -- "cached audio" --> out["Speaker"]
 ```
 
-This downloads TensorFlow.js, MediaPipe, and landmark models into `vendor/`. These files are excluded from Git. With the downloads complete, local sign recording, training, and recognition can run without fetching these dependencies from a CDN.
+<details>
+<summary><b>Model and training details</b></summary>
 
-Google Fonts still requires a network connection; system fonts are used as a fallback. Speech recognition may use the browser provider's services and require internet. Azure speech requires internet for uncached text; the same text and voice can be replayed from `.dilmanc-cache/tts/` offline while the local server is running. Test the exact presentation setup before relying on offline operation.
+<br>
 
-## Azure speech setup
+| Part | Setting |
+| --- | --- |
+| Input | 30 frames x 134 features (one second) |
+| Layers | Conv1D 64 (kernel 5), dropout 0.15, Conv1D 96 (kernel 3), max pooling, Conv1D 128 (kernel 3), global average pooling, dropout 0.3, softmax |
+| Optimizer | Adam, learning rate 0.001, categorical cross-entropy |
+| Training | 20, 35 (default), or 60 epochs, batch size 32 |
+| Augmentation | Temporal crops, position and scale variation, shape jitter, random mirroring. Training data only. |
+| Evaluation | Random stratified split or held-out signer, then a final model trained on all samples |
 
-1. In the Azure portal, open or create a Speech resource. Copy `KEY 1` and the short region code, such as `westeurope`, from **Keys and Endpoint**. Do not use the endpoint URL as the region.
-2. Run `python3 server.py --configure` (`py server.py --configure` on Windows). Enter the region and key in the terminal; the key is hidden and saved only to the ignored `.env` file.
-3. Open `http://localhost:8000`. Later, start the app with `python3 server.py`.
-4. In **Vocabulary & settings**, choose Banu (`az-AZ-BanuNeural`) or Babek (`az-AZ-BabekNeural`) and press **Test**. Only Test confirms that the key works.
-5. Before a demo, press **Prepare demo voices** while online. Vocabulary phrases, composition rules, and the standard demo phrases are cached for the selected voice. Azure usage may be billed according to your subscription.
+Mirroring swaps the hand slots and flips horizontal coordinates. It improves robustness; it is not evidence of accuracy for left-handed signers. Training time depends on the device and dataset.
 
-When Azure is configured, vocabulary and combination phrases for the selected voice are cached in the background after startup. Cached audio is stored in `.dilmanc-cache/tts/` and is reused only for the same text and voice. Dataset and model exports do not include audio; copy `.dilmanc-cache/` separately to a backup computer. Changing the port changes browser storage, so export the dataset before switching servers. If port 8000 is already in use, stop the old server first.
+</details>
 
-| Message | Action |
+## Sentences from sign sequences
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/phrases-dark.gif">
+    <img src="assets/readme/phrases-light.gif" alt="baş plus ağrı becomes Başım ağrıyır" width="100%">
+  </picture>
+</p>
+
+The default vocabulary covers `salam`, `həkim`, `ağrı`, `baş`, `dərman`, `təcili`, `harada`, and `təşəkkür`, plus a background class for ordinary movement. Rules combine them, and the longest match wins:
+
+| Signs | Spoken phrase | Meaning |
+| --- | --- | --- |
+| `baş` + `ağrı` | Başım ağrıyır. | My head hurts. |
+| `baş` + `ağrı` + `dərman` | Başım ağrıyır, dərman lazımdır. | My head hurts, I need medicine. |
+| `təcili` + `həkim` | Təcili həkim lazımdır! | I need a doctor urgently! |
+| `həkim` + `harada` | Həkim haradadır? | Where is the doctor? |
+| `dərman` + `harada` | Dərmanı haradan ala bilərəm? | Where can I get medicine? |
+| `ağrı` + `təcili` | Çox ağrıyır, təcilidir! | It hurts a lot, it is urgent! |
+
+Signs, phrases, and rules are editable in **Vocabulary & settings**.
+
+## Train your own signs
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/training-dark.gif">
+    <img src="assets/readme/training-light.gif" alt="Record samples, train in the browser, evaluate on a held-out signer" width="100%">
+  </picture>
+</p>
+
+1. Validate the vocabulary with fluent signers.
+2. In **Record samples**, choose a sign, enter the real signer's name, and record one-second samples. Samples without enough visible hands are rejected.
+3. Record **Background** samples too: hands out of view, resting hands, ordinary gestures, touching the face, handling objects.
+4. Collect each sign from several people, with varied clothing, lighting, and camera distance.
+5. In **Model**, choose random split or held-out signer evaluation, then train.
+6. In **Live translation**, test recognition, phrases, and speech.
+
+Aim for at least 20 samples per class from at least three signers as a starting point, not a guarantee of accuracy. To combine recordings, export each dataset and import them on one computer; a sample with an existing ID replaces the stored one, so corrected signer labels do not create duplicates.
+
+> [!TIP]
+> When you report a result, include the number of test samples, class coverage, and the evaluation method. A random split can look better than real use because the same people and conditions appear in both sets. A held-out signer result is meaningful only when signer labels are correct.
+
+## Quick start
+
+You need Python 3.10 or newer, a current Chrome or Edge, a webcam, and an Azure Speech resource for voice output.
+
+```sh
+git clone https://github.com/hajizadaravan/elvo.git
+cd elvo
+sh scripts/vendor.sh            # download TensorFlow.js, MediaPipe, and landmark models into vendor/
+python3 server.py --configure   # first run: enter the Azure region and key
+```
+
+Open <http://localhost:8000> and allow camera access. Later, start the app with `python3 server.py`.
+
+The server uses only the Python standard library. The key is entered hidden and saved to the ignored `.env` file; it never reaches the browser. Camera access needs `localhost` or HTTPS, so opening `index.html` directly does not work, and a plain static server has no speech endpoints.
+
+<details>
+<summary><b>Azure speech setup</b></summary>
+
+<br>
+
+1. In the Azure portal, open or create a Speech resource. Copy `KEY 1` and the short region code, such as `westeurope`, from **Keys and Endpoint**. The region is not the endpoint URL.
+2. Run `python3 server.py --configure` (`py server.py --configure` on Windows) and enter both values.
+3. In **Vocabulary & settings**, choose Banu (`az-AZ-BanuNeural`) or Babek (`az-AZ-BabekNeural`) and press **Test**. Only Test confirms that the key works.
+4. Before a demo, press **Prepare demo voices** while online. Vocabulary phrases, rules, and demo phrases are cached for the selected voice in `.dilmanc-cache/tts/`.
+
+Speech runs 10% faster than the default rate, with short pauses between sentences. Azure usage may be billed according to your subscription.
+
+| Message | What to do |
 | --- | --- |
 | Speech server unavailable | Stop the static server and run `python3 server.py` |
 | Azure not configured | Run `python3 server.py --configure` |
-| Check the Azure key, region, and access | Confirm both values come from the same Speech resource, then reconfigure |
+| Check the Azure key, region, and access | Use the key and region from the same Speech resource, then reconfigure |
 | Request limit reached | Check the Azure quota and try again later |
-| Could not connect to Azure | Check the internet connection; only previously cached text can play |
+| Could not connect to Azure | Check the connection; only cached text can play |
 | Browser blocked audio | Press **Speak** or **Test**, then check the site's audio permission |
 
-The server is intended for `127.0.0.1` only. Public hosting is outside the scope of this setup.
+</details>
 
-## Privacy and storage
+<details>
+<summary><b>Offline use</b></summary>
 
-The application's sign processing runs locally. It stores landmark feature samples and the trained model in browser storage, not recorded video on an application server.
+<br>
 
-New speech text is sent by the local Python server to Azure; the API key stays on the server. Cached audio is stored locally. The server only listens on `127.0.0.1` and does not serve `.env`, `.git`, or the audio cache as static files. Browser speech recognition may process microphone audio remotely. Do not describe the complete application as offline or entirely local when those services are enabled. Obtain participants' consent before collecting or sharing datasets. Export backups before clearing browser storage.
+After `sh scripts/vendor.sh`, recording, training, and recognition run without fetching dependencies from a CDN. Google Fonts falls back to system fonts. Azure needs a connection for new text, but cached phrases replay offline while the local server runs. Browser speech recognition may use the browser provider's online service. Test the exact presentation setup before relying on it offline.
 
-Elvo was previously called Dilmanc. Browser storage keys, the IndexedDB database, the audio cache folder, and the dataset and model file format IDs keep the `dilmanc` prefix, so data recorded before the rename still loads and exports remain compatible with older copies.
+</details>
 
-## Three-minute demo
+<details>
+<summary><b>Keyboard shortcuts</b></summary>
 
-1. **Problem, 30 seconds:** explain the communication barrier at a clinic reception.
-2. **Live interaction, 90 seconds:** demonstrate `salam`, `baş`, `ağrı`, and `dərman`, followed by a spoken reply displayed as text.
-3. **Evidence, 30 seconds:** show the actual evaluation method, sample counts, and per-class results.
-4. **Adaptability, 30 seconds:** explain custom vocabulary and demonstrate recording or retraining only if it reliably fits the time available.
+<br>
 
-Prepare a backup recording. Avoid promising a fixed training time or perfect accuracy.
+| Key | Action |
+| --- | --- |
+| <kbd>Space</kbd> | Start or stop recording in **Record samples** |
+| <kbd>Enter</kbd> | Speak the pending phrase in **Live translation** |
+| <kbd>Backspace</kbd> | Remove the last pending sign |
+| <kbd>Esc</kbd> | Leave projector mode |
 
-## Keyboard shortcuts
+</details>
 
-- **Space:** start or stop recording in the recording view.
-- **Enter:** speak the pending phrase in the live view.
-- **Backspace:** remove the last pending sign in the live view.
-- **Escape:** leave projector mode.
+## Privacy and connectivity
 
-For camera-free interface testing, open `http://localhost:8000/?nocam`.
-
-Run the JavaScript tests (Node.js 20+, with downloaded vendor assets) and Python server tests:
-
-```sh
-npm test
-npm run test:server
-```
-
-For the simulated UI workflow, run `npm install` and `npm run test:ui`. Tests use synthetic sign features and mocked Azure audio, not live speech credentials or a real camera. Export the dataset before migration and keep the same browser profile and origin to retain browser storage. Portable model bundles can be imported on another computer without retraining; audio caches must be copied separately.
-
-Runtime assets under `vendor/` remain excluded from Git and must be downloaded after cloning.
-
-## Project structure
-
-```text
-index.html         Application views
-assets/            Elvo logo and mark (SVG)
-css/app.css        Visual styles
-js/main.js         UI, recording, and live recognition flow
-js/i18n.js         Azerbaijani and English interface strings
-js/vision.js       Camera and MediaPipe integration
-js/features.js     Feature extraction and augmentation
-js/model.js        Training, evaluation, inference, and persistence
-js/vocab.js        Vocabulary and phrase composition
-js/speech.js       Azure audio client and browser speech recognition
-js/temporal.js     Fixed-duration resampling and recognition gating
-server.py          Local Azure speech server and disk audio cache
-js/store.js        IndexedDB storage and dataset import/export
-js/charts.js       Evaluation charts
-scripts/vendor.sh  Local dependency downloader
-```
-
-## Commit convention
-
-Write commit messages and repository documentation in English. Use Conventional Commits:
-
-```text
-feat(scope): add a new capability
-fix(scope): correct existing behavior
-docs(scope): update documentation
-chore(scope): maintain tooling or configuration
-```
-
-Keep Azerbaijani interface labels and spoken phrases in Azerbaijani.
+- Video stays on the device. Landmark processing and training run in the browser, and samples and the model are stored in browser storage, not on an application server.
+- New phrase text goes from the local server to Azure for speech. Cached audio stays in `.dilmanc-cache/`.
+- Browser speech recognition may process microphone audio on the browser provider's servers.
+- The server listens on `127.0.0.1` only and does not serve `.env`, `.git`, or the audio cache.
+- Get participants' consent before collecting or sharing datasets, and export backups before clearing browser storage.
 
 ## Limitations
 
-- Recognition is restricted to the recorded vocabulary and training conditions.
+- Recognition covers only the recorded vocabulary and training conditions.
 - Facial grammar, unrestricted continuous signing, and fingerspelling are not implemented.
 - Rule-based phrases are not a general sign language grammar model.
-- Mirroring augmentation and high confidence scores do not establish real-world accuracy.
-- Validate signing conventions with the intended Azerbaijani users rather than assuming one universal vocabulary.
-- Do not use this prototype for clinical decisions or as a replacement for a qualified interpreter.
+- High confidence scores and mirroring augmentation do not establish real-world accuracy.
+- Signing conventions need validation with the intended Azerbaijani users.
+- Do not use Elvo for clinical decisions or as a replacement for a qualified interpreter.
+
+## Working with Deaf signers
+
+Sign language technology works only when the people who sign shape it. These principles guide how Elvo is built and used:
+
+- **Signers choose the vocabulary.** Signs and phrases are chosen and checked with fluent Azerbaijani Sign Language users, ideally Deaf signers, before any recording.
+- **Consent comes first.** Record only people who agreed to it, label samples with the real signer, and share datasets only with that consent.
+- **Support, not substitution.** Elvo is for short, predictable exchanges. Interpreters and the patient's own choice of communication come first.
+
+The [Sign Language Processing survey](https://research.sign.mt) by Moryossef and Goldberg describes these practices in more depth. If you are a Deaf signer, an interpreter, or a clinic in Azerbaijan and would like to help test Elvo, we would like to hear from you.
+
+## Built with
+
+| Layer | Technology |
+| --- | --- |
+| Landmarks | MediaPipe Tasks Vision 0.10.14, Hand Landmarker and Pose Landmarker Lite |
+| Model | TensorFlow.js 4.22, trained and run in the browser |
+| Speech output | Azure AI Speech, Azerbaijani neural voices Banu and Babek |
+| Speech input | Web Speech API, `az-AZ` |
+| Storage | IndexedDB and localStorage |
+| Server | Python 3.10+ standard library, localhost only |
+| Interface | Plain HTML, CSS, and ES modules, no build step |
+
+## Team
+
+Elvo is built by **Project-ZH**.
+
+| Name | Role |
+| --- | --- |
+| Gasim Garayev | Product designer |
+| [Ravan Hajizada](https://github.com/hajizadaravan) | System design and development |
+| Rahman Pashayev | QA testing |
+
+## Contributing
+
+Conventions, the file map, data contracts, and verification commands are in [AGENTS.md](AGENTS.md). Interface rules are in [DESIGN.md](DESIGN.md). Elvo was previously called Dilmanc; storage keys and file format IDs keep the `dilmanc` prefix so existing data still loads.
+
+<br>
+<p align="center"><sub>Made by Project-ZH</sub></p>
