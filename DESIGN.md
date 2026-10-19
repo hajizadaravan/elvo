@@ -128,7 +128,7 @@ During recording, keep the countdown, task-specific recording feedback, and bott
 
 Recognized sign, sentence, and reply are distinct sections. Keep large, readable output and quiet secondary probabilities. The highest probability bar uses `--chart-1`; the others use `--chart-muted`.
 
-No-recognition and empty-sentence text use `--muted`, not pale border/control colors. The reply starts blank; do not insert an explanatory paragraph in its place.
+No-recognition and empty-sentence text use `--muted`, not pale border/control colors. The reply starts blank; do not insert an explanatory paragraph in its place. Typed reply and three quick replies sit below it. Quick reply text stays Azerbaijani; only button labels are translated.
 
 Preserve actionable warnings when the model needs training or is incompatible with the vocabulary. Removing visual noise does not mean hiding failures.
 
@@ -146,7 +146,8 @@ Keep the interface functional and brief:
 - Show feedback for a user action, a failure, or a required next step.
 - Avoid slogans, repetitive help paragraphs, congratulations, and generic AI explanations.
 - Do not restore "Everything stays in this browser; nothing is sent to a server" or similar absolute privacy/offline claims.
-- Do not show persistent "Camera active", "Model ready · 8 signs", or "Voice: Turkish (fallback)" indicators.
+- Do not show persistent "Camera active", "Model ready · 8 signs", "Voice: Turkish (fallback)", or "Voice: Banu" indicators.
+- Speech setup status appears in settings only when the server is unavailable, Azure is not configured, preparation is running, or a request failed.
 - Put technical caveats and detailed setup guidance in documentation, not in the working area.
 - Do not use the em dash character.
 
